@@ -5,13 +5,20 @@ import CarTracker from './components/CarTracker.vue';
 <template>
   <header>
   </header>
-
   <main>
     <CarTracker />
   </main>
 </template>
 
 <style scoped>
+main {
+  display: flex;
+  justify-content: center;
+}
+
+main > * {
+  width: 80vw;
+}
 header {
   line-height: 1.5;
 }
