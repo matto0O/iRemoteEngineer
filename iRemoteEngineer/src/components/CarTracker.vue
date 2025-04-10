@@ -20,31 +20,36 @@
         {{ car.car_number }}
       </div>
     </div>
-
+    <div style="height: 50px;"></div>
     <!-- Class Filter -->
     <div class="filter">
-      <label for="classFilter">Show class:</label>
-      <select id="classFilter" v-model="selectedClass">
-        <option value="">All</option>
-        <option
-          v-for="classId in uniqueClassIds"
-          :key="classId"
-          :value="classId"
-        >
-          Class {{ classId }}
-        </option>
-      </select>
+      <label>Show class:</label>
+      <ButtonGroup>
+      <Button
+        v-for="classId in uniqueClassIds"
+        :key="classId"
+        :label="'Class ' + classId"
+        :class="{ 'p-button-outlined': !enabledClasses.includes(classId) }"
+        :style="{ 
+          backgroundColor: enabledClasses.includes(classId) ? getClassColor(classId) : '#d3d3d3', 
+          color: enabledClasses.includes(classId) ? 'white' : 'black',
+          border: '1px solid black'
+        }"
+        @click="toggleClass(classId)"
+      ></Button>
+      </ButtonGroup>
     </div>
 
     <!-- Selected Car Info -->
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-      <div v-for="selectedCar in selectedCars" :key="selectedCar.id" class="car-info">
-      <h4>Car Info</h4>
-      <p><strong>Car Number:</strong> {{ selectedCar.car_number }}</p>
-      <p><strong>Car ID:</strong> {{ selectedCar.id }}</p>
-      <p><strong>Class:</strong> {{ selectedCar.class_id }}</p>
-      <p><strong>Distance %:</strong> {{ (selectedCar.distance_pct * 100).toFixed(1) }}%</p>
-      <button @click="selectedCars.splice(selectedCars.indexOf(selectedCar), 1)">Close</button>
+      <div v-for="car in selectedCars" :key="car.car_number" class="car-info">
+        <div class="car-info-header">
+          <h4>Car #{{ car.car_number }}</h4>
+          <button @click="selectCar(car)" class="close-btn">×</button>
+        </div>
+        <p><strong>Car Model:</strong> {{ car.car_model_id }}</p>
+        <p><strong>Class:</strong> {{ car.class_id }}</p>
+        <p><strong>Distance %:</strong> {{ (car.distance_pct * 100).toFixed(1) }}%</p>
       </div>
     </div>
   </div>
@@ -52,6 +57,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import ButtonGroup from 'primevue/buttongroup'
+import Button from 'primevue/button'
 
 const data = ref({
   player_car_idx: null,
@@ -59,7 +66,7 @@ const data = ref({
   fuel_analysis: {}
 })
 
-const selectedClass = ref('')
+const enabledClasses = ref([])
 const hoveredCarId = ref(null)
 const selectedCars = ref([])
 
@@ -73,12 +80,20 @@ const classColors = [
 const classColorsMapping = {}
 const classOffsetsMapping = {}
 
+const CLASS_OFFSET_MULTIPLIER = 15
+
 onMounted(() => {
   socket = new WebSocket('ws://localhost:8000/ws')
 
   socket.onmessage = (event) => {
     const data_json = JSON.parse(event.data)
     data.value = data_json
+          
+    // Initialize enabled classes if it's empty
+    if (enabledClasses.value.length === 0) {
+      const classes = new Set(data_json.cars.map(car => car.class_id))
+      enabledClasses.value = Array.from(classes).sort((a, b) => a - b)
+    }
   }
 
   socket.onclose = () => {
@@ -102,9 +117,9 @@ const getClassOffset = (classId) => {
     classOffsetsMapping[classId] = Object.keys(classOffsetsMapping).length
   }
   // Position cars relative to the top of the track instead of bottom
-  // Use a smaller offset to keep cars closer to the track
+  // Use a smaller offset to keep cars closer to the t`rack
   const classOrder = classOffsetsMapping[classId]
-  return `${classOrder % 2 == 1 ? "" : "-1"}${(classOrder / 2) * 15}px`
+  return `${classOrder % 2 == 1 ? "" : "-1"}${(classOrder / 2) * CLASS_OFFSET_MULTIPLIER}px`
 }
 
 const uniqueClassIds = computed(() => {
@@ -113,10 +128,25 @@ const uniqueClassIds = computed(() => {
 })
 
 const filteredCars = computed(() => {
-  return selectedClass.value === ''
-    ? data.value.cars
-    : data.value.cars.filter(car => car.class_id === Number(selectedClass.value))
-})
+    return enabledClasses.value.length === 0
+      ? data.value.cars
+      : data.value.cars.filter(car => enabledClasses.value.includes(car.class_id))
+  })
+
+const getCarById = (id) => {
+    return data.value.cars.find(car => car.id === id)
+  }
+  
+  const toggleClass = (classId) => {
+    const index = enabledClasses.value.indexOf(classId)
+    if (index === -1) {
+      enabledClasses.value.push(classId)
+      // Keep the array sorted
+      enabledClasses.value.sort((a, b) => a - b)
+    } else {
+      enabledClasses.value.splice(index, 1)
+    }
+  }
 
 const selectCar = (car) => {
   const existingCarIndex = selectedCars.value.findIndex(selectedCar => selectedCar.car_number === car.car_number);
