@@ -37,13 +37,15 @@
     </div>
 
     <!-- Selected Car Info -->
-    <div v-if="selectedCar" class="car-info">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <div v-for="selectedCar in selectedCars" :key="selectedCar.id" class="car-info">
       <h4>Car Info</h4>
       <p><strong>Car Number:</strong> {{ selectedCar.car_number }}</p>
       <p><strong>Car ID:</strong> {{ selectedCar.id }}</p>
       <p><strong>Class:</strong> {{ selectedCar.class_id }}</p>
       <p><strong>Distance %:</strong> {{ (selectedCar.distance_pct * 100).toFixed(1) }}%</p>
-      <button @click="selectedCar = null">Close</button>
+      <button @click="selectedCars.splice(selectedCars.indexOf(selectedCar), 1)">Close</button>
+      </div>
     </div>
   </div>
 </template>
@@ -59,7 +61,7 @@ const data = ref({
 
 const selectedClass = ref('')
 const hoveredCarId = ref(null)
-const selectedCar = ref(null)
+const selectedCars = ref([])
 
 let socket = null
 
@@ -101,7 +103,8 @@ const getClassOffset = (classId) => {
   }
   // Position cars relative to the top of the track instead of bottom
   // Use a smaller offset to keep cars closer to the track
-  return `-${10 + classOffsetsMapping[classId] * 15}px`
+  const classOrder = classOffsetsMapping[classId]
+  return `${classOrder % 2 == 1 ? "" : "-1"}${(classOrder / 2) * 15}px`
 }
 
 const uniqueClassIds = computed(() => {
@@ -116,7 +119,12 @@ const filteredCars = computed(() => {
 })
 
 const selectCar = (car) => {
-  selectedCar.value = car
+  const existingCarIndex = selectedCars.value.findIndex(selectedCar => selectedCar.car_number === car.car_number);
+  if (existingCarIndex !== -1) {
+    selectedCars.value.splice(existingCarIndex, 1);
+  } else {
+    selectedCars.value.push(car);
+  }
 }
 </script>
 
