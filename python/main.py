@@ -17,7 +17,7 @@ fuel_consumption = MyQueue(FUEL_STRATEGY_LAPS)
 
 # Shared car data
 shared_data_json = {
-    "player_car_idx": None,
+    "player_car_number": None,
     "cars": [],
     "fuel_analysis": {}
 }
@@ -44,18 +44,20 @@ def relative():
 
     car_data = []
     me = None
-    for idx, elem in enumerate(zip(all_cars, them)):
-        if elem[1][0] == my_class and elem[1][1] == my_position:
-            me = idx
+    for car, elem in zip(all_cars, them):
+        if my_position != 0 and elem[0] == my_class and elem[1] == my_position:
+            me = car.car_number
         car_data.append({
-            "class_id": elem[0].class_id,
-            "car_model_id": elem[0].car_model_id,
-            "car_number": elem[0].car_number,
-            "distance_pct": elem[1][2],
+            "user_name": car.user_name,
+            "team_name": car.team_name,
+            "class_id": car.class_id,
+            "car_model_id": car.car_model_id,
+            "car_number": car.car_number,
+            "distance_pct": elem[2],
         })
         
     with data_lock:
-        shared_data_json["player_car_idx"] = me
+        shared_data_json["player_car_number"] = me
         shared_data_json["cars"] = car_data
 
     ir.unfreeze_var_buffer_latest()
@@ -149,13 +151,13 @@ def lap_finished():
     state.last_lap = new_lap
     return False
 
-def check_iracing():
+def check_iracing(test_file=None):
     if state.ir_connected and not (ir.is_initialized and ir.is_connected):
         state.ir_connected = False
         state.last_car_setup_tick = -1
         ir.shutdown()
         return False
-    elif not state.ir_connected and ir.startup(test_file='./data.bin') and ir.is_initialized and ir.is_connected:
+    elif not state.ir_connected and ir.startup(test_file=test_file) and ir.is_initialized and ir.is_connected:
     # elif not state.ir_connected and ir.startup() and ir.is_initialized and ir.is_connected:
         state.ir_connected = True
     return True
@@ -181,17 +183,26 @@ if __name__ == '__main__':
     threading.Thread(target=start_api, daemon=True).start()
 
     try:
-        while not check_iracing():
+        counter = 1 #remove counter
+        while not check_iracing(f'./python/data{counter}.bin'):
             pass
         print("iRacing connected")
         state.last_lap = ir['Lap']
         while True:
-            if not check_iracing() or not ir.is_initialized or not ir.is_connected:
+            # to remove later #######
+            if not check_iracing(f'./python/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
+                counter += 1
+                if counter > 4:
+                    counter = 1
                 print("iRacing disconnected")
+            #########################
+            # if not check_iracing() or not ir.is_initialized or not ir.is_connected:
+            #     print("iRacing disconnected")
             if state.ir_connected:
                 if lap_finished():
                     update_fuel_data()
                 relative()
+            ir.shutdown() # remove
             time.sleep(1)
     except KeyboardInterrupt:
         # press ctrl+c to exit
