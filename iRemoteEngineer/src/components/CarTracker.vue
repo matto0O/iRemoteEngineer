@@ -17,6 +17,7 @@
           top: getClassOffset(car.class_id),
           border: isPlayerCar(car) ? '3px solid black' : highlightedCars.includes(car.car_number) ? `3px solid ${getClassColor(car.class_id)}` : '2px solid #fff',
           transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
+          opacity: car.in_pit ? '0.5' : '1',
           zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 1
         }"
         @mouseenter="hoveredCarNumber = car.car_number"
