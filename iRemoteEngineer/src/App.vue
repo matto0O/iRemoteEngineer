@@ -3,8 +3,6 @@ import CarTracker from './components/CarTracker.vue';
 </script>
 
 <template>
-  <header>
-  </header>
   <main>
     <CarTracker />
   </main>
@@ -16,9 +14,6 @@ main {
   justify-content: center;
 }
 
-main > * {
-  width: 80vw;
-}
 header {
   line-height: 1.5;
 }

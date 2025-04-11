@@ -42,10 +42,17 @@
 
     <!-- Selected Car Info -->
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-      <div v-for="car in selectedCars" :key="car.car_number" class="car-info">
+      <div 
+        v-for="car in selectedCars" 
+        :key="car.car_number" 
+        class="car-info"
+        :style="{ borderLeft: '4px solid ' + getClassColor(car.class_id) }"
+      >
         <div class="car-info-header">
-          <h4>Car #{{ car.car_number }}</h4>
-          <button @click="selectCar(car)" class="close-btn">×</button>
+          <h4 :style="{ color: getClassColor(car.class_id) }">Car #{{ car.car_number }}
+            <button @click="selectCar(car)" class="close-btn" style="float: right; margin-left: auto;">×</button>
+          </h4>
+          
         </div>
         <p><strong>Car Model:</strong> {{ car.car_model_id }}</p>
         <p><strong>Class:</strong> {{ car.class_id }}</p>
@@ -87,9 +94,17 @@ onMounted(() => {
 
   socket.onmessage = (event) => {
     const data_json = JSON.parse(event.data)
+
+    // Update main data
     data.value = data_json
-          
-    // Initialize enabled classes if it's empty
+
+    // Sync selected car info
+    selectedCars.value = selectedCars.value.map(oldCar => {
+      const updated = data_json.cars.find(c => c.car_number === oldCar.car_number)
+      return updated || oldCar
+    })
+
+    // Initialize enabled classes if needed
     if (enabledClasses.value.length === 0) {
       const classes = new Set(data_json.cars.map(car => car.class_id))
       enabledClasses.value = Array.from(classes).sort((a, b) => a - b)
@@ -128,25 +143,21 @@ const uniqueClassIds = computed(() => {
 })
 
 const filteredCars = computed(() => {
-    return enabledClasses.value.length === 0
-      ? data.value.cars
-      : data.value.cars.filter(car => enabledClasses.value.includes(car.class_id))
-  })
+  return enabledClasses.value.length === 0
+    ? data.value.cars
+    : data.value.cars.filter(car => enabledClasses.value.includes(car.class_id))
+})
 
-const getCarById = (id) => {
-    return data.value.cars.find(car => car.id === id)
+const toggleClass = (classId) => {
+  const index = enabledClasses.value.indexOf(classId)
+  if (index === -1) {
+    enabledClasses.value.push(classId)
+    // Keep the array sorted
+    enabledClasses.value.sort((a, b) => a - b)
+  } else {
+    enabledClasses.value.splice(index, 1)
   }
-  
-  const toggleClass = (classId) => {
-    const index = enabledClasses.value.indexOf(classId)
-    if (index === -1) {
-      enabledClasses.value.push(classId)
-      // Keep the array sorted
-      enabledClasses.value.sort((a, b) => a - b)
-    } else {
-      enabledClasses.value.splice(index, 1)
-    }
-  }
+}
 
 const selectCar = (car) => {
   const existingCarIndex = selectedCars.value.findIndex(selectedCar => selectedCar.car_number === car.car_number);
@@ -190,7 +201,7 @@ const selectCar = (car) => {
   justify-content: center;
   border: 2px solid #fff;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease, z-index 0.2s;
+  transition: left 0.5s ease, transform 0.2s ease, z-index 0.2s;
   cursor: pointer;
 }
 
@@ -211,16 +222,32 @@ const selectCar = (car) => {
 }
 
 .car-info {
+  width: 200px;
   margin-top: 15px;
   padding: 12px;
   background: #fafafa;
   border: 1px solid #ccc;
   border-radius: 8px;
-  max-width: 250px;
   font-size: 14px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+.fixed-width-value {
+display: inline-block;
+min-width: 50px;
 }
 
 .car-info h4 {
   margin: 0 0 8px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #666;
+  padding: 0 4px;
+  line-height: 1;
 }
 </style>
