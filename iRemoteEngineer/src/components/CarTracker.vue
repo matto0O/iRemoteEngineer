@@ -10,11 +10,12 @@
           left: car.distance_pct * 100 + '%',
           backgroundColor: getClassColor(car.class_id),
           top: getClassOffset(car.class_id),
-          zIndex: car.id === hoveredCarId ? 10 : 1
+          border: isPlayerCar(car) ? '3px solid black' : highlightedCars.includes(car.car_number) ? `3px solid ${getClassColor(car.class_id)}` : '2px solid #fff',
+          transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
+          zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 1
         }"
-        :class="{ 'player-car': car.id === data.player_car_idx }"
-        @mouseenter="hoveredCarId = car.id"
-        @mouseleave="hoveredCarId = null"
+        @mouseenter="hoveredCarNumber = car.car_number"
+        @mouseleave="hoveredCarNumber = null"
         @click="selectCar(car)"
       >
         {{ car.car_number }}
@@ -52,11 +53,19 @@
           <h4 :style="{ color: getClassColor(car.class_id) }">Car #{{ car.car_number }}
             <button @click="selectCar(car)" class="close-btn" style="float: right; margin-left: auto;">×</button>
           </h4>
-          
         </div>
-        <p><strong>Car Model:</strong> {{ car.car_model_id }}</p>
+        <p><strong>Username:</strong> {{ car.user_name }}</p>
+        <p><strong>Teamname:</strong> {{ car.team_name }}</p>
         <p><strong>Class:</strong> {{ car.class_id }}</p>
+        <p><strong>Car Model:</strong> {{ car.car_model_id }}</p>
         <p><strong>Distance %:</strong> {{ (car.distance_pct * 100).toFixed(1) }}%</p>
+        <button 
+          @click="toggleHighlight(car)" 
+          class="highlight-btn"
+          :class="{ 'highlight-active': highlightedCars.includes(car.car_number) }"
+        >
+          {{ highlightedCars.includes(car.car_number) ? 'Remove Highlight' : 'Highlight Car' }}
+        </button>
       </div>
     </div>
   </div>
@@ -68,14 +77,19 @@ import ButtonGroup from 'primevue/buttongroup'
 import Button from 'primevue/button'
 
 const data = ref({
-  player_car_idx: null,
+  player_car_number: null,
   cars: [],
   fuel_analysis: {}
 })
 
+const isPlayerCar = (car) => {
+  return car.id === data.value.player_car_number
+}
+
 const enabledClasses = ref([])
-const hoveredCarId = ref(null)
+const hoveredCarNumber = ref(null)
 const selectedCars = ref([])
+const highlightedCars = ref([]) // Track highlighted cars
 
 let socket = null
 
@@ -97,6 +111,7 @@ onMounted(() => {
 
     // Update main data
     data.value = data_json
+    console.log(data.value)
 
     // Sync selected car info
     selectedCars.value = selectedCars.value.map(oldCar => {
@@ -132,7 +147,7 @@ const getClassOffset = (classId) => {
     classOffsetsMapping[classId] = Object.keys(classOffsetsMapping).length
   }
   // Position cars relative to the top of the track instead of bottom
-  // Use a smaller offset to keep cars closer to the t`rack
+  // Use a smaller offset to keep cars closer to the track
   const classOrder = classOffsetsMapping[classId]
   return `${classOrder % 2 == 1 ? "" : "-1"}${(classOrder / 2) * CLASS_OFFSET_MULTIPLIER}px`
 }
@@ -163,8 +178,22 @@ const selectCar = (car) => {
   const existingCarIndex = selectedCars.value.findIndex(selectedCar => selectedCar.car_number === car.car_number);
   if (existingCarIndex !== -1) {
     selectedCars.value.splice(existingCarIndex, 1);
+    // Also remove highlight if the car is being deselected
+    const highlightIndex = highlightedCars.value.indexOf(car.id);
+    if (highlightIndex !== -1) {
+      highlightedCars.value.splice(highlightIndex, 1);
+    }
   } else {
     selectedCars.value.push(car);
+  }
+}
+
+const toggleHighlight = (car) => {
+  const index = highlightedCars.value.indexOf(car.car_number);
+  if (index === -1) {
+    highlightedCars.value.push(car.car_number);
+  } else {
+    highlightedCars.value.splice(index, 1);
   }
 }
 </script>
@@ -176,7 +205,7 @@ const selectCar = (car) => {
   flex-direction: column;
   gap: 10px;
   position: relative;
-  padding-top: 60px; /* Add padding to accommodate car markers above the track */
+  /* padding-top: 60px; Add padding to accommodate car markers above the track */
 }
 
 .track-strip {
@@ -201,17 +230,12 @@ const selectCar = (car) => {
   justify-content: center;
   border: 2px solid #fff;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
-  transition: left 0.5s ease, transform 0.2s ease, z-index 0.2s;
+  transition: left 0.5s ease, transform 0.2s ease, z-index 0.2s, border 0.2s ease;
   cursor: pointer;
 }
 
 .car-marker:hover {
   transform: translateX(-50%) scale(1.2);
-}
-
-.player-car {
-  border: 3px solid gold;
-  box-shadow: 0 0 6px gold;
 }
 
 .filter {
@@ -222,7 +246,7 @@ const selectCar = (car) => {
 }
 
 .car-info {
-  width: 200px;
+  width: 300px;
   margin-top: 15px;
   padding: 12px;
   background: #fafafa;
@@ -249,5 +273,25 @@ min-width: 50px;
   color: #666;
   padding: 0 4px;
   line-height: 1;
+}
+
+.highlight-btn {
+  margin-top: 8px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.highlight-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.highlight-active {
+  background-color: #e0e0e0;
+  border-color: #aaa;
+  font-weight: bold;
 }
 </style>
