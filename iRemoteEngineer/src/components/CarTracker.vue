@@ -1,5 +1,10 @@
 <template>
   <div class="car-track-container">
+    <!-- Connection Status (optional) -->
+    <div v-if="!isConnected" class="connection-error">
+      Connection lost - {{ connectionError || 'Attempting to reconnect...' }}
+    </div>
+    
     <!-- Track Strip -->
     <div class="track-strip">
       <div
@@ -72,15 +77,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch } from 'vue'
 import ButtonGroup from 'primevue/buttongroup'
 import Button from 'primevue/button'
+import useRaceData from '@/composables/useRaceData'
 
-const data = ref({
-  player_car_number: null,
-  cars: [],
-  fuel_analysis: {}
-})
+// Get shared race data from composable
+const { data, isConnected, connectionError } = useRaceData()
 
 const isPlayerCar = (car) => {
   return car.id === data.value.player_car_number
@@ -91,8 +94,6 @@ const hoveredCarNumber = ref(null)
 const selectedCars = ref([])
 const highlightedCars = ref([]) // Track highlighted cars
 
-let socket = null
-
 const classColors = [
   "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
   "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
@@ -101,39 +102,23 @@ const classColors = [
 const classColorsMapping = {}
 const classOffsetsMapping = {}
 
-const CLASS_OFFSET_MULTIPLIER = 15
+const CLASS_OFFSET_MULTIPLIER = 10
 
-onMounted(() => {
-  socket = new WebSocket('ws://localhost:8000/ws')
+// Sync selected car info when data updates
+watch(() => data.value.cars, (newCars) => {
+  if (!newCars || newCars.length === 0) return
+  
+  selectedCars.value = selectedCars.value.map(oldCar => {
+    const updated = newCars.find(c => c.car_number === oldCar.car_number)
+    return updated || oldCar
+  })
 
-  socket.onmessage = (event) => {
-    const data_json = JSON.parse(event.data)
-
-    // Update main data
-    data.value = data_json
-    console.log(data.value)
-
-    // Sync selected car info
-    selectedCars.value = selectedCars.value.map(oldCar => {
-      const updated = data_json.cars.find(c => c.car_number === oldCar.car_number)
-      return updated || oldCar
-    })
-
-    // Initialize enabled classes if needed
-    if (enabledClasses.value.length === 0) {
-      const classes = new Set(data_json.cars.map(car => car.class_id))
-      enabledClasses.value = Array.from(classes).sort((a, b) => a - b)
-    }
+  // Initialize enabled classes if needed
+  if (enabledClasses.value.length === 0) {
+    const classes = new Set(newCars.map(car => car.class_id))
+    enabledClasses.value = Array.from(classes).sort((a, b) => a - b)
   }
-
-  socket.onclose = () => {
-    console.log("WebSocket connection closed")
-  }
-})
-
-onBeforeUnmount(() => {
-  if (socket) socket.close()
-})
+}, { deep: true })
 
 const getClassColor = (classId) => {
   if (classColorsMapping[classId] === undefined) {
@@ -149,7 +134,7 @@ const getClassOffset = (classId) => {
   // Position cars relative to the top of the track instead of bottom
   // Use a smaller offset to keep cars closer to the track
   const classOrder = classOffsetsMapping[classId]
-  return `${classOrder % 2 == 1 ? "" : "-1"}${(classOrder / 2) * CLASS_OFFSET_MULTIPLIER}px`
+  return `${20 - classOrder * CLASS_OFFSET_MULTIPLIER}px`
 }
 
 const uniqueClassIds = computed(() => {
@@ -179,7 +164,7 @@ const selectCar = (car) => {
   if (existingCarIndex !== -1) {
     selectedCars.value.splice(existingCarIndex, 1);
     // Also remove highlight if the car is being deselected
-    const highlightIndex = highlightedCars.value.indexOf(car.id);
+    const highlightIndex = highlightedCars.value.indexOf(car.car_number);
     if (highlightIndex !== -1) {
       highlightedCars.value.splice(highlightIndex, 1);
     }
@@ -257,8 +242,8 @@ const toggleHighlight = (car) => {
   flex-shrink: 0;
 }
 .fixed-width-value {
-display: inline-block;
-min-width: 50px;
+  display: inline-block;
+  min-width: 50px;
 }
 
 .car-info h4 {
@@ -293,5 +278,13 @@ min-width: 50px;
   background-color: #e0e0e0;
   border-color: #aaa;
   font-weight: bold;
+}
+
+.connection-error {
+  background-color: #ffdddd;
+  color: #ff0000;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
 }
 </style>

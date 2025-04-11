@@ -1,10 +1,14 @@
 <script setup>
 import CarTracker from './components/CarTracker.vue';
+import FuelAnalysis from './components/FuelAnalysis.vue';
 </script>
 
 <template>
   <main>
-    <CarTracker />
+    <div class="component-container">
+      <CarTracker />
+      <FuelAnalysis />
+    </div>
   </main>
 </template>
 
