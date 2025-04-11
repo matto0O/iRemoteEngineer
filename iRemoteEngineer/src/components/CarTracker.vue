@@ -164,11 +164,6 @@ const selectCar = (car) => {
   const existingCarIndex = selectedCars.value.findIndex(selectedCar => selectedCar.car_number === car.car_number);
   if (existingCarIndex !== -1) {
     selectedCars.value.splice(existingCarIndex, 1);
-    // Also remove highlight if the car is being deselected
-    const highlightIndex = highlightedCars.value.indexOf(car.car_number);
-    if (highlightIndex !== -1) {
-      highlightedCars.value.splice(highlightIndex, 1);
-    }
   } else {
     selectedCars.value.push(car);
   }
