@@ -19,9 +19,14 @@ fuel_consumption = MyQueue(FUEL_STRATEGY_LAPS)
 shared_data_json = {
     "player_car_number": None,
     "cars": [],
-    "fuel_analysis": {}
+    "fuel_analysis": {},
+    "sectors": {},
 }
 data_lock = threading.Lock()
+
+def split_time_info():
+    with data_lock:
+        shared_data_json["sectors"] = {(sector['SectorNum'] + 1): sector["SectorStartPct"] * 100 for sector in ir['SplitTimeInfo']['Sectors']}
 
 # @time_it
 def relative():
@@ -38,10 +43,11 @@ def relative():
 
     their_class = ir['CarIdxClass']
     their_position = ir['CarIdxClassPosition']
+    their_lap = ir['CarIdxLap']
     their_distance_pct = ir['CarIdxLapDistPct']
     them_pit_road = ir['CarIdxOnPitRoad']
 
-    them = list(zip(their_class, their_position, their_distance_pct, them_pit_road))
+    them = list(zip(their_class, their_position, their_distance_pct, them_pit_road, their_lap))
 
     car_data = []
     me = None
@@ -56,6 +62,7 @@ def relative():
             "car_number": car.car_number,
             "distance_pct": elem[2],
             "in_pit": elem[3],
+            "lap": elem[4],
         })
 
     with data_lock:
@@ -175,27 +182,28 @@ if __name__ == '__main__':
     threading.Thread(target=start_api, daemon=True).start()
 
     try:
-        counter = 8 #remove counter
-        while not check_iracing():
+        counter = 14 #remove counter
+        while not check_iracing(f'./python/testset/data{counter}.bin'):
             pass
         print("iRacing connected")
+        # split_time_info()
         state.last_lap = ir['Lap']
         while True:
             # to remove later #######
-            # if not check_iracing(f'./python/testset/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
+            if not check_iracing(f'./python/testset/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
                 # counter += 1
                 # if counter > 14:
                 #     counter = 8
-                # print("iRacing disconnected")
-            #########################
-            if not check_iracing() or not ir.is_initialized or not ir.is_connected:
                 print("iRacing disconnected")
+            #########################
+            # if not check_iracing() or not ir.is_initialized or not ir.is_connected:
+            #     print("iRacing disconnected")
             if state.ir_connected:
                 check_if_in_pit()
                 if lap_finished():
                     update_fuel_data()
                 relative()
-            # ir.shutdown() # remove
+            ir.shutdown() # remove
             time.sleep(1)
     except KeyboardInterrupt:
         # press ctrl+c to exit

@@ -7,6 +7,17 @@
     
     <!-- Track Strip -->
     <div class="track-strip">
+      <!-- Sector markers -->
+      <div 
+        v-for="(startPct, sectorNum) in sectors" 
+        :key="'sector-' + sectorNum"
+        class="sector-marker"
+        :style="{ left: startPct + '%', zIndex: 2 }"
+      >
+        <div class="sector-line"></div>
+        <div class="sector-label">S{{ sectorNum }}</div>
+      </div>
+      
       <div
         v-for="car in filteredCars"
         :key="car.id"
@@ -15,10 +26,10 @@
           left: car.distance_pct * 100 + '%',
           backgroundColor: getClassColor(car.class_id),
           top: getClassOffset(car.class_id),
-          border: isPlayerCar(car) ? '3px solid black' : highlightedCars.includes(car.car_number) ? `3px solid ${getClassColor(car.class_id)}` : '2px solid #fff',
+          border: highlightedCars.includes(car.car_number) ? `3px solid ${getClassColor(car.class_id)}` : '2px solid #fff',
           transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
           opacity: car.in_pit ? '0.5' : '1',
-          zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 1
+          zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 5
         }"
         @mouseenter="hoveredCarNumber = car.car_number"
         @mouseleave="hoveredCarNumber = null"
@@ -64,6 +75,7 @@
         <p><strong>Teamname:</strong> {{ car.team_name }}</p>
         <p><strong>Class:</strong> {{ car.class_id }}</p>
         <p><strong>Car Model:</strong> {{ car.car_model_id }}</p>
+        <p><strong>lap:</strong> {{ car.lap }}</p>
         <p><strong>Distance %:</strong> {{ (car.distance_pct * 100).toFixed(1) }}%</p>
         <button 
           @click="toggleHighlight(car)" 
@@ -86,14 +98,18 @@ import useRaceData from '@/composables/useRaceData'
 // Get shared race data from composable
 const { data, isConnected, connectionError } = useRaceData()
 
-const isPlayerCar = (car) => {
-  return car.id === data.value.player_car_number
-}
-
 const enabledClasses = ref([])
 const hoveredCarNumber = ref(null)
 const selectedCars = ref([])
 const highlightedCars = ref([]) // Track highlighted cars
+const sectors = ref({}) // Store sector information
+
+// Watch for sectors data in the shared race data
+watch(() => data.value.sectors, (newSectors) => {
+  if (newSectors && Object.keys(newSectors).length > 0) {
+    sectors.value = newSectors
+  }
+}, { immediate: true, deep: true })
 
 const classColors = [
   "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
@@ -120,6 +136,13 @@ watch(() => data.value.cars, (newCars) => {
     enabledClasses.value = Array.from(classes).sort((a, b) => a - b)
   }
 }, { deep: true })
+
+const isOnSameLap = (car) => {
+  // TODO: Implement logic to check if the car is on the same lap as the player car
+  // Use tri-state logic to determine if the car is on the same lap as the player car
+  // 1: Lap ahead, 0: Same lap, -1: Lap down
+  return 0
+}
 
 const getClassColor = (classId) => {
   if (classColorsMapping[classId] === undefined) {
@@ -195,6 +218,29 @@ const toggleHighlight = (car) => {
   background-color: #ccc;
   border-radius: 4px;
   overflow: visible;
+}
+
+/* Sector markers styling */
+.sector-marker {
+  position: absolute;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.sector-line {
+  width: 2px;
+  height: 12px;
+  background-color: #333;
+  margin: 0 auto;
+}
+
+.sector-label {
+  font-size: 10px;
+  color: #333;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 2px;
 }
 
 .car-marker {
