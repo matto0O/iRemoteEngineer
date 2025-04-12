@@ -74,9 +74,9 @@ def tyre_data():
         "left_carcass_temp": ir["LFtempCL"],
         "middle_carcass_temp": ir["LFtempCM"],
         "right_carcass_temp": ir["LFtempCR"],
-        "left_tread_remaning": ir["LFwearL"],
-        "middle_tread_remaning": ir["LFwearM"],
-        "right_tread_remaning": ir["LFwearR"]
+        "left_tread_remaning": ir["LFwearL"] * 100,
+        "middle_tread_remaning": ir["LFwearM"] * 100,
+        "right_tread_remaning": ir["LFwearR"] * 100
     }
 
     
@@ -84,9 +84,9 @@ def tyre_data():
         "left_carcass_temp": ir["RFtempCL"],
         "middle_carcass_temp": ir["RFtempCM"],
         "right_carcass_temp": ir["RFtempCR"],
-        "left_tread_remaning": ir["RFwearL"],
-        "middle_tread_remaning": ir["RFwearM"],
-        "right_tread_remaning": ir["RFwearR"]
+        "left_tread_remaning": ir["RFwearL"] * 100,
+        "middle_tread_remaning": ir["RFwearM"] * 100,
+        "right_tread_remaning": ir["RFwearR"] * 100
     }
 
     
@@ -94,9 +94,9 @@ def tyre_data():
         "left_carcass_temp": ir["LRtempCL"],
         "middle_carcass_temp": ir["LRtempCM"],
         "right_carcass_temp": ir["LRtempCR"],
-        "left_tread_remaning": ir["LRwearL"],
-        "middle_tread_remaning": ir["LRwearM"],
-        "right_tread_remaning": ir["LRwearR"]
+        "left_tread_remaning": ir["LRwearL"] * 100,
+        "middle_tread_remaning": ir["LRwearM"] * 100,
+        "right_tread_remaning": ir["LRwearR"] * 100
     }
 
     
@@ -104,9 +104,9 @@ def tyre_data():
         "left_carcass_temp": ir["RRtempCL"],
         "middle_carcass_temp": ir["RRtempCM"],
         "right_carcass_temp": ir["RRtempCR"],
-        "left_tread_remaning": ir["RRwearL"],
-        "middle_tread_remaning": ir["RRwearM"],
-        "right_tread_remaning": ir["RRwearR"]
+        "left_tread_remaning": ir["RRwearL"] * 100,
+        "middle_tread_remaning": ir["RRwearM"] * 100,
+        "right_tread_remaning": ir["RRwearR"] * 100
     }
 
     with data_lock:
@@ -269,13 +269,11 @@ if __name__ == '__main__':
         while not check_iracing(f'./python/testset/data{counter}.bin'):
             pass
         print("iRacing connected")
-        # split_time_info()
-        # tyre_data()
         state.last_lap = ir['Lap']
         state.incidents = ir['PlayerCarMyIncidentCount']
         state.fast_repairs_used = ir["PlayerFastRepairsUsed"]
+        split_time_info()
         while True:
-            break
             # to remove later #######
             if not check_iracing(f'./python/testset/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
                 # counter += 1
@@ -287,10 +285,14 @@ if __name__ == '__main__':
             #     print("iRacing disconnected")
             if state.ir_connected:
                 check_if_in_pit()
+                tyre_data()
+                weather_info()
+                used_fast_repair()
+                new_incidents()
                 if lap_finished():
                     update_fuel_data()
                 relative()
-            ir.shutdown() # remove
+            # ir.shutdown() # remove
             time.sleep(1)
     except KeyboardInterrupt:
         # press ctrl+c to exit
