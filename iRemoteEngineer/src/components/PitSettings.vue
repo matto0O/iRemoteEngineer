@@ -154,7 +154,7 @@ const toggleTyreType = () => {
 // Reset all
 const clearSettings = () => {
   fuelAmount.value = 10
-  isRefueling.value = true
+  isRefueling.value = false
   for (let key in tyreStatus.value) {
     tyreStatus.value[key] = false
   }
