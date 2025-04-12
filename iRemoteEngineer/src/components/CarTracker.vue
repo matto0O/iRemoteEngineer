@@ -20,22 +20,42 @@
       
       <div
         v-for="car in filteredCars"
-        :key="car.id"
-        class="car-marker"
-        :style="{
-          left: car.distance_pct * 100 + '%',
-          backgroundColor: getClassColor(car.class_id),
-          top: getClassOffset(car.class_id),
-          border: highlightedCars.includes(car.car_number) ? `3px solid ${getClassColor(car.class_id)}` : '2px solid #fff',
-          transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
-          opacity: car.in_pit ? '0.5' : '1',
-          zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 5
-        }"
-        @mouseenter="hoveredCarNumber = car.car_number"
-        @mouseleave="hoveredCarNumber = null"
-        @click="selectCar(car)"
-      >
-        {{ car.car_number }}
+        :key="car.id" >
+        <div v-if="car.car_number !== playerCarNumber"
+          class="car-marker"
+          :style="{
+            left: car.distance_pct * 100 + '%',
+            backgroundColor: getClassColor(car.class_id),
+            top: getClassOffset(car.class_id),
+            border: highlightedCars.includes(car.car_number) ? `3px solid ${getClassColor(car.class_id)}` : '2px solid #fff',
+            transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
+            opacity: car.in_pit ? '0.5' : '1',
+            zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 5
+          }"
+          @mouseenter="hoveredCarNumber = car.car_number"
+          @mouseleave="hoveredCarNumber = null"
+          @click="selectCar(car)"
+        >
+          {{ car.car_number }}
+        </div>
+        <div v-else
+          class="car-marker player-car-marker"
+          :style="{
+            left: car.distance_pct * 100 + '%',
+            backgroundColor: 'white',
+            color: getClassColor(car.class_id),
+            top: getClassOffset(car.class_id),
+            border: `$2px solid ${getClassColor(car.class_id)}`,
+            transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
+            opacity: car.in_pit ? '0.5' : '1',
+            zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 7
+          }"
+          @mouseenter="hoveredCarNumber = car.car_number"
+          @mouseleave="hoveredCarNumber = null"
+          @click="selectCar(car)"
+        >
+          {{ car.car_number }}
+        </div>
       </div>
     </div>
     <div style="height: 50px;"></div>
@@ -103,6 +123,7 @@ const hoveredCarNumber = ref(null)
 const selectedCars = ref([])
 const highlightedCars = ref([]) // Track highlighted cars
 const sectors = ref({}) // Store sector information
+const playerCarNumber = ref(null) // Store player car information
 
 // Watch for sectors data in the shared race data
 watch(() => data.value.sectors, (newSectors) => {
@@ -135,6 +156,9 @@ watch(() => data.value.cars, (newCars) => {
     const classes = new Set(newCars.map(car => car.class_id))
     enabledClasses.value = Array.from(classes).sort((a, b) => a - b)
   }
+
+  // Update playerCarNumber
+  playerCarNumber.value = data.value.player_car_number
 }, { deep: true })
 
 const isOnSameLap = (car) => {
@@ -255,7 +279,6 @@ const toggleHighlight = (car) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid #fff;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
   transition: left 0.5s ease, transform 0.2s ease, z-index 0.2s, border 0.2s ease;
   cursor: pointer;
