@@ -1,6 +1,7 @@
 <script setup>
 import CarTracker from './components/CarTracker.vue';
 import FuelAnalysis from './components/FuelAnalysis.vue';
+import IncidentTracker from './components/IncidentTracker.vue';
 import TyreDetails from './components/TyreDetails.vue';
 import WeatherInfo from './components/WeatherInfo.vue';
 </script>
@@ -12,6 +13,7 @@ import WeatherInfo from './components/WeatherInfo.vue';
       <FuelAnalysis />
       <TyreDetails />
       <WeatherInfo />
+      <IncidentTracker />
     </div>
   </main>
 </template>

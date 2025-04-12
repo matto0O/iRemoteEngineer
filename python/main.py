@@ -30,9 +30,8 @@ shared_data_json = {
         "rear_right": {}
     },
     "incidents": {
-        "new_incidents": 0,
+        "incidents": [],
         "total_incidents": 0,
-        "time_stamp": None,
     },
     "fast_repairs_used": 0,
 }
@@ -56,9 +55,8 @@ def new_incidents():
     if inc_diff > 0:
         state.incidents = ir["PlayerCarMyIncidentCount"]
         with data_lock:
-            shared_data_json["incidents"]["new_incidents"] = inc_diff
             shared_data_json["incidents"]["total_incidents"] = state.incidents
-            shared_data_json["incidents"]["time_stamp"] = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+            shared_data_json["incidents"]["incidents"].append((datetime.now().strftime("%d/%m/%Y, %H:%M:%S"), inc_diff))
 
 # @time_it
 def weather_info():
@@ -276,6 +274,8 @@ if __name__ == '__main__':
         print("iRacing connected")
         state.last_lap = ir['Lap']
         state.incidents = ir['PlayerCarMyIncidentCount']
+        with data_lock:
+            shared_data_json["incidents"]["total_incidents"] = state.incidents
         state.fast_repairs_used = ir["PlayerFastRepairsUsed"]
         split_time_info()
         while True:
