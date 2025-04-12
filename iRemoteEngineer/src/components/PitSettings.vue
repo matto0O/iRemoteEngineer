@@ -15,8 +15,8 @@
               mode="decimal"
               showButtons
               :step="1"
-              :min="0"
-              :max="100"
+              :min="1"
+              :max="200"
               suffix=" L"
             />
           </div>
@@ -108,7 +108,7 @@ import useRaceData from '@/composables/useRaceData'
 const { sendCommand } = useRaceData()
 
 // Fuel
-const fuelAmount = ref(0)
+const fuelAmount = ref(10)
 const isRefueling = ref(true)
 
 // Tyres
@@ -153,7 +153,7 @@ const toggleTyreType = () => {
 
 // Reset all
 const clearSettings = () => {
-  fuelAmount.value = 0
+  fuelAmount.value = 10
   isRefueling.value = true
   for (let key in tyreStatus.value) {
     tyreStatus.value[key] = false
@@ -193,6 +193,7 @@ const createCommand = () => {
   command.push(fastRepair.value ? 'fr' : 'clear_fr')
 
   const finalCommand = command.join(' ')
+  console.log('Command sent:', finalCommand)
   sendCommand(finalCommand)
 }
 </script>
