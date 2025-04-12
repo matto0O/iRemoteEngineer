@@ -68,7 +68,7 @@
   // Check if value should be highlighted as an alert
   const isAlert = (key) => {
     // Alert conditions
-    if (key === 'track_wetness' !== "Dry") {
+    if (key === 'track_wetness' && weatherData.value.track_wetness !== "Dry") {
       return true;
     }
     if (key === 'precipitation' && weatherData.value.precipitation > 0.05) {
