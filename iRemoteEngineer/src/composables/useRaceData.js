@@ -45,6 +45,16 @@ export default function useRaceData(wsUrl = 'ws://localhost:8000/ws') {
     }
   }
 
+  const sendCommand = (commandString) => {
+    if (socket && isConnected.value) {
+      socket.send(commandString)
+      console.log("Command sent:", commandString)
+    } else {
+      console.warn("Cannot send command, socket not connected")
+      console.log(socket, isConnected.value)
+    }
+  }
+
   const disconnect = () => {
     if (socket) {
       socket.close()
@@ -67,6 +77,7 @@ export default function useRaceData(wsUrl = 'ws://localhost:8000/ws') {
     isConnected,
     connectionError,
     connect,
-    disconnect
+    disconnect,
+    sendCommand
   }
 }

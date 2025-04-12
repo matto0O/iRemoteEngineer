@@ -4,6 +4,7 @@ import FuelAnalysis from './components/FuelAnalysis.vue';
 import IncidentTracker from './components/IncidentTracker.vue';
 import TyreDetails from './components/TyreDetails.vue';
 import WeatherInfo from './components/WeatherInfo.vue';
+import PitSettings from './components/PitSettings.vue';
 </script>
 
 <template>
@@ -14,6 +15,7 @@ import WeatherInfo from './components/WeatherInfo.vue';
       <TyreDetails />
       <WeatherInfo />
       <IncidentTracker />
+      <PitSettings />
     </div>
   </main>
 </template>

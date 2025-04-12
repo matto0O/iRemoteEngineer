@@ -1,4 +1,4 @@
-import irsdk
+from irsdk import PitCommandMode, IRSDK
 import sched
 from utils import State, Car, MyQueue, time_it
 import time
@@ -11,7 +11,7 @@ from datetime import datetime
 
 app = FastAPI()
 
-ir = irsdk.IRSDK()
+ir = IRSDK()
 state = State()
 FUEL_STRATEGY_LAPS = 5
 fuel_consumption = MyQueue(FUEL_STRATEGY_LAPS)
@@ -60,14 +60,55 @@ def new_incidents():
 
 # @time_it
 def weather_info():
+    rad_to_deg = 57.296
+    a = ir["WindDir"] * rad_to_deg
+    angle = a + 22.5
+
+    if angle > 0 and angle < 45:
+        wind_direction = "North"
+    elif angle >= 45 and angle < 90:
+        wind_direction = "North-East"
+    elif angle >= 90 and angle < 135:
+        wind_direction = "East"
+    elif angle >= 135 and angle < 180:
+        wind_direction = "South-East"
+    elif angle >= 180 and angle < 225:
+        wind_direction = "South"
+    elif angle >= 225 and angle < 270:
+        wind_direction = "South-West"
+    elif angle >= 270 and angle < 315:
+        wind_direction = "West"
+    elif angle >= 315 and angle < 360:
+        wind_direction = "North-West"
+    else:
+        wind_direction = "Unknown direction"
+
     with data_lock:
+        match ir['TrackWetness']:
+            case 1:
+                track_wetness = "Dry"
+            case 2:
+                track_wetness = "Mostly dry"
+            case 3:
+                track_wetness = "Very lightly wet"
+            case 4:
+                track_wetness = "Lightly wet"
+            case 5:
+                track_wetness = "Moderately wet"
+            case 6:
+                track_wetness = "Very wet"
+            case 7:
+                track_wetness = "Extremely wet"
+            case _:
+                track_wetness = "Unknown wetness"
+
         shared_data_json["weather"] = {
             "air_temp": ir['AirTemp'],
             "track_temp": ir['TrackTempCrew'],
-            "wind_speed": ir['WindVel'],
-            "wind_direction": ir['WindDir'],
-            "track_wetness": 1 - ir['TrackWetness'],
-            "precipitation": ir['Precipitation'],
+            "wind_speed": ir['WindVel'] * 3.6,
+            "wind_direction": f"{wind_direction} ({a:.2f}°)",
+            "track_wetness": track_wetness,
+            "precipitation": round(float(ir['Precipitation']), 2), 
             "declared_wet": ir['WeatherDeclaredWet'],
         }
 
@@ -247,19 +288,76 @@ def check_iracing(test_file=None):
         state.ir_connected = True
     return True
 
+@time_it
+def execute_commands(text):
+    commands = text.split(" ")
+    ir.pit_command(PitCommandMode.clear)
+    for command in commands:
+        match command:
+            case "lf":
+                ir.pit_command(PitCommandMode.lf)
+            case "rf":
+                ir.pit_command(PitCommandMode.rf)
+            case "lr":
+                ir.pit_command(PitCommandMode.lr)
+            case "rr":
+                ir.pit_command(PitCommandMode.rr)
+            case "fr":
+                ir.pit_command(PitCommandMode.fr)
+            case "clear_fr":
+                ir.pit_command(PitCommandMode.clear_fr)
+            case "clear_fuel":
+                ir.pit_command(PitCommandMode.clear_fuel)
+            case _:
+                if "fuel" in command:
+                    try:
+                        fuel = int(command.split(".")[1])
+                        ir.pit_command(PitCommandMode.fuel, fuel)
+                    except ValueError:
+                        print(f"Invalid fuel command: {command}")
+                elif "tc" in command:
+                    try:
+                        tc = int(command.split(".")[1])
+                        # ir.pit_command(PitCommandMode., tc) # cannot solve, need to use macros for tc
+                    except ValueError:
+                        print(f"Invalid tyre change command: {command}")
+
+                else:
+                    print(f"Unknown command: {command}")
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    try:
+
+    async def send_periodic_data():
         while True:
             await asyncio.sleep(1)
             with data_lock:
-                await websocket.send_json(shared_data_json)
+                try:
+                    await websocket.send_json(shared_data_json)
+                except Exception as e:
+                    print(f"Send error: {e}")
+                    break
+
+    send_task = asyncio.create_task(send_periodic_data())
+    try:
+        while True:
+            text = await websocket.receive_text()
+            execute_commands(text)
     except Exception as e:
-        print(f"WebSocket disconnected: {e}")
+        print(f"WebSocket error: {e}")
     finally:
+        send_task.cancel()
         await websocket.close()
 
+
+def new_session_setup():
+    state.last_lap = ir['Lap']
+    state.incidents = ir['PlayerCarMyIncidentCount']
+    with data_lock:
+        shared_data_json["incidents"]["total_incidents"] = state.incidents
+    state.fast_repairs_used = ir["PlayerFastRepairsUsed"]
+    split_time_info()
 
 def start_api():
     uvicorn.run(app, host="0.0.0.0", port=8000)
@@ -268,24 +366,19 @@ if __name__ == '__main__':
     threading.Thread(target=start_api, daemon=True).start()
 
     try:
-        counter = 10 #remove counter
+        counter = 1 #remove counter
         while not check_iracing(f'./python/testset/data{counter}.bin'):
             pass
         print("iRacing connected")
-        state.last_lap = ir['Lap']
-        state.incidents = ir['PlayerCarMyIncidentCount']
-        with data_lock:
-            shared_data_json["incidents"]["total_incidents"] = state.incidents
-        state.fast_repairs_used = ir["PlayerFastRepairsUsed"]
-        split_time_info()
+        new_session_setup()
         while True:
             # to remove later #######
             if not check_iracing(f'./python/testset/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
-                # counter += 1
-                # if counter > 14:
-                #     counter = 8
+                counter += 1
+                if counter > 14:
+                    counter = 1
                 print("iRacing disconnected")
-            #########################
+            # #########################
             # if not check_iracing() or not ir.is_initialized or not ir.is_connected:
             #     print("iRacing disconnected")
             if state.ir_connected:
@@ -297,7 +390,7 @@ if __name__ == '__main__':
                 if lap_finished():
                     update_fuel_data()
                 relative()
-            # ir.shutdown() # remove
+            ir.shutdown() # remove
             time.sleep(1)
     except KeyboardInterrupt:
         # press ctrl+c to exit
