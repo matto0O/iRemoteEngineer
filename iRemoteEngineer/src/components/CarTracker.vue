@@ -21,13 +21,17 @@
       <div
         v-for="car in filteredCars"
         :key="car.id" >
-        <div v-if="car.car_number !== playerCarNumber"
+        <div v-if="isPlayerCar(car)"
           class="car-marker"
           :style="{
             left: car.distance_pct * 100 + '%',
             backgroundColor: getClassColor(car.class_id),
             top: getClassOffset(car.class_id),
-            border: highlightedCars.includes(car.car_number) ? `3px solid ${getClassColor(car.class_id)}` : '2px solid #fff',
+            border: (() => {
+              const lapStatus = isOnSameLap(car);
+              const color = lapStatus === 1? 'darkred': lapStatus === -1? 'darkblue' : getClassColor(car.class_id);
+              return highlightedCars.includes(car.car_number) ? `3px solid ${color}`: '2px solid #fff';
+            })(),
             transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
             opacity: car.in_pit ? '0.5' : '1',
             zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 5
@@ -45,7 +49,7 @@
             backgroundColor: 'white',
             color: getClassColor(car.class_id),
             top: getClassOffset(car.class_id),
-            border: `$2px solid ${getClassColor(car.class_id)}`,
+            border: `2px solid ${getClassColor(car.class_id)}`,
             transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
             opacity: car.in_pit ? '0.5' : '1',
             zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 7
@@ -123,7 +127,7 @@ const hoveredCarNumber = ref(null)
 const selectedCars = ref([])
 const highlightedCars = ref([]) // Track highlighted cars
 const sectors = ref({}) // Store sector information
-const playerCarNumber = ref(null) // Store player car information
+const playerCar = ref(null) // Store player car information
 
 // Watch for sectors data in the shared race data
 watch(() => data.value.sectors, (newSectors) => {
@@ -158,14 +162,25 @@ watch(() => data.value.cars, (newCars) => {
   }
 
   // Update playerCarNumber
-  playerCarNumber.value = data.value.player_car_number
+  
+  playerCar.value = data.value.cars.find(car => car.car_number === data.value.player_car_number)
 }, { deep: true })
+
+const isPlayerCar = (car) => {
+  return car.car_number !== playerCar.value?.car_number
+}
 
 const isOnSameLap = (car) => {
   // TODO: Implement logic to check if the car is on the same lap as the player car
   // Use tri-state logic to determine if the car is on the same lap as the player car
   // 1: Lap ahead, 0: Same lap, -1: Lap down
-  return 0
+  if (!playerCar.value) return 0 // No player car data available
+
+  if (car.lap > playerCar.value.lap + 1) return 1
+  else if (car.lap > playerCar.value.lap) return car.distance_pct > playerCar.value.distance_pct ? 1 : 0
+  else if (car.lap < playerCar.value.lap) return car.distance_pct < playerCar.value.distance_pct ? -1 : 0
+  else if (car.lap < playerCar.value.lap - 1) return -1
+  else return 0
 }
 
 const getClassColor = (classId) => {
