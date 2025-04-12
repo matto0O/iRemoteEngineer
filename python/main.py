@@ -38,16 +38,19 @@ shared_data_json = {
 }
 data_lock = threading.Lock()
 
+# @time_it
 def split_time_info():
     with data_lock:
         shared_data_json["sectors"] = {(sector['SectorNum'] + 1): sector["SectorStartPct"] * 100 for sector in ir['SplitTimeInfo']['Sectors']}
 
+# @time_it
 def used_fast_repair():
     if state.fast_repairs_used != ir["PlayerFastRepairsUsed"]:
         state.fast_repairs_used = ir["PlayerFastRepairsUsed"]
         with data_lock:
             shared_data_json["fast_repairs_used"] = state.fast_repairs_used
 
+# @time_it
 def new_incidents():
     inc_diff = ir["PlayerCarMyIncidentCount"] - state.incidents
     if inc_diff > 0:
@@ -57,6 +60,7 @@ def new_incidents():
             shared_data_json["incidents"]["total_incidents"] = state.incidents
             shared_data_json["incidents"]["time_stamp"] = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
 
+# @time_it
 def weather_info():
     with data_lock:
         shared_data_json["weather"] = {
@@ -64,11 +68,12 @@ def weather_info():
             "track_temp": ir['TrackTempCrew'],
             "wind_speed": ir['WindVel'],
             "wind_direction": ir['WindDir'],
-            "track_wetness": ir['TrackWetness'],
+            "track_wetness": 1 - ir['TrackWetness'],
             "precipitation": ir['Precipitation'],
             "declared_wet": ir['WeatherDeclaredWet'],
         }
 
+# @time_it
 def tyre_data():
     LF = {
         "left_carcass_temp": ir["LFtempCL"],
