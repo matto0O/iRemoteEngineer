@@ -17,15 +17,16 @@
         <div v-for="(incident, index) in incidents" :key="index" class="incident-item">
           <div class="incident-time">{{ formatTime(incident[0]) }}</div>
           <div class="incident-count">
-            <span class="incident-number">+{{ incident[1] }}</span>
+            <span v-if="incident[1] === 1" class="incident-number-1x" >+{{ incident[1] }}</span>
+            <span v-else-if="incident[1] === 2" class="incident-number-2x" >+{{ incident[1] }}</span>
+            <span v-else class="incident-number-4x" >+{{ incident[1] }}</span>
             <span class="incident-text">{{ incident[1] > 1 ? 'incidents' : 'incident' }}</span>
           </div>
         </div>
       </div>
-      
       <div class="incident-total">
         <span>Total Incidents: </span>
-        <span class="total-number" :class="{'high-incidents': totalIncidents > 10}">
+        <span class="total-number" :class="{'high-incidents': totalIncidents > 15}">
           {{ totalIncidents }}
         </span>
       </div>
@@ -132,8 +133,26 @@
     align-items: center;
   }
   
-  .incident-number {
-    background-color: #ff6b6b;
+  .incident-number-1x {
+    background-color: #e2c234;
+    color: rgb(255, 255, 255);
+    border-radius: 12px;
+    padding: 0.1rem 0.5rem;
+    font-weight: bold;
+    margin-right: 0.3rem;
+  }
+
+  .incident-number-2x {
+    background-color: #db8400;
+    color: rgb(255, 255, 255);
+    border-radius: 12px;
+    padding: 0.1rem 0.5rem;
+    font-weight: bold;
+    margin-right: 0.3rem;
+  }
+
+  .incident-number-4x {
+    background-color: #b22222;
     color: white;
     border-radius: 12px;
     padding: 0.1rem 0.5rem;
