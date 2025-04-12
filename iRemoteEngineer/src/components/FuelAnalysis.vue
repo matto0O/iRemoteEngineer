@@ -9,7 +9,7 @@
         <Column field="value" header="Value">
           <template #body="slotProps">
             <span :class="{ 'fuel-critical': isCritical(slotProps.data.key) }">
-              {{ formatValue(slotProps.data.value) }}
+              {{ formatValue(slotProps.data.value, slotProps.data.key) }}
             </span>
           </template>
         </Column>
@@ -69,22 +69,25 @@ const isCritical = (key) => {
   // Map of keys to human-readable labels
   const labels = {
     fuel_left: "Fuel Remaining",
-    average_consumption: "Average Consumption",
-    target_laps_avg: "Target Laps (Average Consumption)",
-    target_laps_avg_consumption: "Target Average Consumption",
-    ollavg: "One Lap Less by Average Consumption",
-    ollavg_consumption_target: "One Lap Less by Avg - Target Consumption",
-    omlavg: "One Lap More by Average Consumption",
-    omlavg_consumption_target: "One Lap More by Avg - Target Consumption",
+    average_consumption: "Avg Consumption",
+    target_laps_avg: "Target Laps by Avg",
+    target_laps_avg_consumption: "Target Consumption by Avg",
+    ollavg: "Target laps -1 by Avg",
+    ollavg_consumption_target: "Consumption for target laps -1 by Avg",
+    omlavg: "Target laps +1 by Avg",
+    omlavg_consumption_target: "Consumption for target laps +1 by Avg",
     last_lap_consumption: "Last Lap Consumption",
-    target_laps_last: "Target Laps (Last Lap Consumption)",
-    target_laps_last_consumption: "Target Consumption (Last Lap Consumption)"
+    target_laps_last: "Target Laps by Last",
+    target_laps_last_consumption: "Target Consumption by Last"
   };
   
   // Format numeric values with 2 decimal places
-  const formatValue = (value) => {
+  const formatValue = (value, key) => {
+    if (['target_laps_avg', 'target_laps_last', 'ollavg', 'omlavg'].includes(key)) {
+      return `${parseInt(value)} laps`;
+    }
     return typeof value === 'number' 
-      ? value.toFixed(2) 
+      ? `${value.toFixed(2)}L` 
       : value;
   };
   </script>
