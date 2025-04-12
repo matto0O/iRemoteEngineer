@@ -56,11 +56,9 @@
     if (key === 'air_temp' || key === 'track_temp') {
       return `${value.toFixed(1)}°C`;
     } else if (key === 'wind_speed') {
-      return `${value.toFixed(1)} m/s`;
-    } else if (key === 'wind_direction') {
-      return `${value.toFixed(0)}°`;
-    } else if (key === 'track_wetness' || key === 'precipitation') {
-      return `${(value * 100).toFixed(1)}%`;
+      return `${value.toFixed(1)} kph`;
+    } else if (key === 'wind_direction' || key === 'track_wetness' || key === 'precipitation') {
+      return value;
     } else if (key === 'declared_wet') {
       return value ? 'Yes' : 'No';
     }
@@ -70,10 +68,10 @@
   // Check if value should be highlighted as an alert
   const isAlert = (key) => {
     // Alert conditions
-    if (key === 'track_wetness' && weatherData.value.track_wetness > 0.2) {
+    if (key === 'track_wetness' !== "Dry") {
       return true;
     }
-    if (key === 'precipitation' && weatherData.value.precipitation > 0) {
+    if (key === 'precipitation' && weatherData.value.precipitation > 0.05) {
       return true;
     }
     if (key === 'declared_wet' && weatherData.value.declared_wet) {
