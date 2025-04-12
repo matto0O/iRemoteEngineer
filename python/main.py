@@ -7,6 +7,7 @@ from fastapi import FastAPI, WebSocket
 import asyncio
 import threading
 import uvicorn
+from datetime import datetime
 
 app = FastAPI()
 
@@ -21,12 +22,98 @@ shared_data_json = {
     "cars": [],
     "fuel_analysis": {},
     "sectors": {},
+    "weather": {},
+    "tyres": {
+        "front_left": {},
+        "front_right": {},
+        "rear_left": {},
+        "rear_right": {}
+    },
+    "incidents": {
+        "new_incidents": 0,
+        "total_incidents": 0,
+        "time_stamp": None,
+    },
+    "fast_repairs_used": 0,
 }
 data_lock = threading.Lock()
 
 def split_time_info():
     with data_lock:
         shared_data_json["sectors"] = {(sector['SectorNum'] + 1): sector["SectorStartPct"] * 100 for sector in ir['SplitTimeInfo']['Sectors']}
+
+def used_fast_repair():
+    if state.fast_repairs_used != ir["PlayerFastRepairsUsed"]:
+        state.fast_repairs_used = ir["PlayerFastRepairsUsed"]
+        with data_lock:
+            shared_data_json["fast_repairs_used"] = state.fast_repairs_used
+
+def new_incidents():
+    inc_diff = ir["PlayerCarMyIncidentCount"] - state.incidents
+    if inc_diff > 0:
+        state.incidents = ir["PlayerCarMyIncidentCount"]
+        with data_lock:
+            shared_data_json["incidents"]["new_incidents"] = inc_diff
+            shared_data_json["incidents"]["total_incidents"] = state.incidents
+            shared_data_json["incidents"]["time_stamp"] = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+
+def weather_info():
+    with data_lock:
+        shared_data_json["weather"] = {
+            "air_temp": ir['AirTemp'],
+            "track_temp": ir['TrackTempCrew'],
+            "wind_speed": ir['WindVel'],
+            "wind_direction": ir['WindDir'],
+            "track_wetness": ir['TrackWetness'],
+            "precipitation": ir['Precipitation'],
+            "declared_wet": ir['WeatherDeclaredWet'],
+        }
+
+def tyre_data():
+    LF = {
+        "left_carcass_temp": ir["LFtempCL"],
+        "middle_carcass_temp": ir["LFtempCM"],
+        "right_carcass_temp": ir["LFtempCR"],
+        "left_tread_remaning": ir["LFwearL"],
+        "middle_tread_remaning": ir["LFwearM"],
+        "right_tread_remaning": ir["LFwearR"]
+    }
+
+    
+    RF = {
+        "left_carcass_temp": ir["RFtempCL"],
+        "middle_carcass_temp": ir["RFtempCM"],
+        "right_carcass_temp": ir["RFtempCR"],
+        "left_tread_remaning": ir["RFwearL"],
+        "middle_tread_remaning": ir["RFwearM"],
+        "right_tread_remaning": ir["RFwearR"]
+    }
+
+    
+    LR = {
+        "left_carcass_temp": ir["LRtempCL"],
+        "middle_carcass_temp": ir["LRtempCM"],
+        "right_carcass_temp": ir["LRtempCR"],
+        "left_tread_remaning": ir["LRwearL"],
+        "middle_tread_remaning": ir["LRwearM"],
+        "right_tread_remaning": ir["LRwearR"]
+    }
+
+    
+    RR = {
+        "left_carcass_temp": ir["RRtempCL"],
+        "middle_carcass_temp": ir["RRtempCM"],
+        "right_carcass_temp": ir["RRtempCR"],
+        "left_tread_remaning": ir["RRwearL"],
+        "middle_tread_remaning": ir["RRwearM"],
+        "right_tread_remaning": ir["RRwearR"]
+    }
+
+    with data_lock:
+        shared_data_json["tyres"]["front_left"] = LF
+        shared_data_json["tyres"]["front_right"] = RF
+        shared_data_json["tyres"]["rear_left"] = LR
+        shared_data_json["tyres"]["rear_right"] = RR
 
 # @time_it
 def relative():
@@ -38,8 +125,7 @@ def relative():
                                car['IRating'], car['LicString']))
     all_cars.sort(key=lambda x: x.car_id)
 
-    my_class = ir['PlayerCarClass']
-    my_position = ir['PlayerCarClassPosition']
+    my_car_idx = ir['PlayerCarIdx']
 
     their_class = ir['CarIdxClass']
     their_position = ir['CarIdxClassPosition']
@@ -50,10 +136,7 @@ def relative():
     them = list(zip(their_class, their_position, their_distance_pct, them_pit_road, their_lap))
 
     car_data = []
-    me = None
     for car, elem in zip(all_cars, them):
-        if my_position != 0 and elem[0] == my_class and elem[1] == my_position:
-            me = car.car_number
         car_data.append({
             "user_name": car.user_name,
             "team_name": car.team_name,
@@ -66,7 +149,7 @@ def relative():
         })
 
     with data_lock:
-        shared_data_json["player_car_number"] = me
+        shared_data_json["player_car_number"] = all_cars[my_car_idx].car_number
         shared_data_json["cars"] = car_data
 
     ir.unfreeze_var_buffer_latest()
@@ -182,13 +265,17 @@ if __name__ == '__main__':
     threading.Thread(target=start_api, daemon=True).start()
 
     try:
-        counter = 14 #remove counter
+        counter = 10 #remove counter
         while not check_iracing(f'./python/testset/data{counter}.bin'):
             pass
         print("iRacing connected")
         # split_time_info()
+        # tyre_data()
         state.last_lap = ir['Lap']
+        state.incidents = ir['PlayerCarMyIncidentCount']
+        state.fast_repairs_used = ir["PlayerFastRepairsUsed"]
         while True:
+            break
             # to remove later #######
             if not check_iracing(f'./python/testset/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
                 # counter += 1

@@ -54,6 +54,8 @@ class State:
     last_car_setup_tick = -1
     last_lap = 0
     last_fuel_level = -1.0
+    incidents = 0
+    fast_repairs_used = 0
 
 @dataclass
 class Car:
