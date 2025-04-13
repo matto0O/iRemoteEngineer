@@ -1,8 +1,5 @@
 <template>
     <div class="tire-data-container">
-      <div v-if="!isConnected" class="connection-error">
-        Connection lost - {{ connectionError || 'Attempting to reconnect...' }}
-      </div>
       <h3>Tire Data Dashboard</h3>
         <DataTable :value="tireData" :rowHover="true" stripedRows responsiveLayout="scroll">
             <Column field="position" header="Position"></Column>
@@ -46,8 +43,15 @@
   import Column from 'primevue/column';
   import useRaceData from '@/composables/useRaceData';
   
+  const props = defineProps({
+  socket: {
+    type: Object,
+    required: true
+  }
+})
+
   // Get shared race data from composable
-  const { data, isConnected, connectionError } = useRaceData();
+  const { data } = useRaceData(props.socket);
   
   // Watch race data for tire information
   const tireDataSource = computed(() => {

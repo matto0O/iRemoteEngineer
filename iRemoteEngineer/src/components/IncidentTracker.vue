@@ -1,8 +1,5 @@
 <template>
     <div class="incident-container">
-      <div v-if="!isConnected" class="connection-error">
-        Connection lost - {{ connectionError || 'Attempting to reconnect...' }}
-      </div>
       <h3>Incident Timeline</h3>
       
       <div v-if="totalIncidents === 0" class="no-incidents">
@@ -36,9 +33,16 @@
   <script setup>
   import { computed } from 'vue';
   import useRaceData from '@/composables/useRaceData';
+
+  const props = defineProps({
+  socket: {
+    type: Object,
+    required: true
+  }
+})
   
   // Get shared race data from composable
-  const { data, isConnected, connectionError } = useRaceData();
+  const { data } = useRaceData(props.socket);
   
   // Watch race data for incident information
   const incidentData = computed(() => {

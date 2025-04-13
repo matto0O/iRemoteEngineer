@@ -1,10 +1,5 @@
 <template>
-  <div class="car-track-container">
-    <!-- Connection Status (optional) -->
-    <div v-if="!isConnected" class="connection-error">
-      Connection lost - {{ connectionError || 'Attempting to reconnect...' }}
-    </div>
-    
+  <div class="car-track-container">    
     <!-- Track Strip -->
     <div class="track-strip">
       <!-- Sector markers -->
@@ -114,13 +109,20 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, defineProps } from 'vue'
 import ButtonGroup from 'primevue/buttongroup'
 import Button from 'primevue/button'
 import useRaceData from '@/composables/useRaceData'
 
+const props = defineProps({
+  socket: {
+    type: Object,
+    required: true
+  }
+})
+
 // Get shared race data from composable
-const { data, isConnected, connectionError } = useRaceData()
+const { data } = useRaceData(props.socket)
 
 const enabledClasses = ref([])
 const hoveredCarNumber = ref(null)

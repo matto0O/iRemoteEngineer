@@ -1,8 +1,5 @@
 <template>
     <div class="weather-data-container">
-      <div v-if="!isConnected" class="connection-error">
-        Connection lost - {{ connectionError || 'Attempting to reconnect...' }}
-      </div>
       <h3>Weather Conditions</h3>
       
       <DataTable :value="tableData" stripedRows responsiveLayout="scroll">
@@ -23,9 +20,16 @@
   import DataTable from 'primevue/datatable';
   import Column from 'primevue/column';
   import useRaceData from '@/composables/useRaceData';
+
+  const props = defineProps({
+  socket: {
+    type: Object,
+    required: true
+  }
+})
   
   // Get shared race data from composable
-  const { data, isConnected, connectionError } = useRaceData();
+  const { data } = useRaceData(props.socket);
   
   // Watch race data for weather information
   const weatherData = computed(() => {

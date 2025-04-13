@@ -1,8 +1,5 @@
 <template>
     <div class="fuel-data-container">
-        <div v-if="!isConnected" class="connection-error">
-        Connection lost - {{ connectionError || 'Attempting to reconnect...' }}
-        </div>
       <h3>Fuel Analysis</h3>
       <DataTable :value="tableData" stripedRows responsiveLayout="scroll">
         <Column field="label" header="Metric"></Column>
@@ -23,8 +20,15 @@
   import Column from 'primevue/column';
   import useRaceData from '@/composables/useRaceData';
 
+  const props = defineProps({
+    socket: {
+      type: Object,
+      required: true
+    }
+  })
+
 // Get shared race data from composable
-const { data, isConnected, connectionError } = useRaceData()
+const { data } = useRaceData(props.socket)
 
 // Watch race data for fuel analysis information
 const fuelData = computed(() => {

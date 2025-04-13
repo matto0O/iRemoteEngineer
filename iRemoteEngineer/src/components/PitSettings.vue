@@ -105,7 +105,14 @@ import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import useRaceData from '@/composables/useRaceData'
 
-const { sendCommand } = useRaceData()
+const props = defineProps({
+  socket: {
+    type: Object,
+    required: true
+  }
+})
+
+const { sendCommand } = useRaceData(props.socket)
 
 // Fuel
 const fuelAmount = ref(10)
