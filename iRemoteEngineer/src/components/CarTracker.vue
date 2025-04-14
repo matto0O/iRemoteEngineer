@@ -24,8 +24,9 @@
             top: getClassOffset(car.class_id),
             border: (() => {
               const lapStatus = isOnSameLap(car);
-              const color = lapStatus === 1? 'darkred': lapStatus === -1? 'darkblue' : getClassColor(car.class_id);
-              return highlightedCars.includes(car.car_number) ? `3px solid ${color}`: '2px solid #fff';
+              const color = lapStatus === 1 ? '#8B0000' : lapStatus === -1 ? '#00008B' : '#ffffff';
+              const borderStyle = highlightedCars.includes(car.car_number) ? `3px solid ${getClassColor(car.class_id)}` : `2px solid ${color}`;
+              return borderStyle;
             })(),
             transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
             opacity: car.in_pit ? '0.5' : '1',
@@ -178,11 +179,13 @@ const isOnSameLap = (car) => {
   // 1: Lap ahead, 0: Same lap, -1: Lap down
   if (!playerCar.value) return 0 // No player car data available
 
-  if (car.lap > playerCar.value.lap + 1) return 1
-  else if (car.lap > playerCar.value.lap) return car.distance_pct > playerCar.value.distance_pct ? 1 : 0
-  else if (car.lap < playerCar.value.lap) return car.distance_pct < playerCar.value.distance_pct ? -1 : 0
-  else if (car.lap < playerCar.value.lap - 1) return -1
-  else return 0
+  const lapDiff = car.lap - playerCar.value.lap
+  if (lapDiff > 1) return 1
+  if (lapDiff < -1) return -1
+  const posDiff = car.distance_pct - playerCar.value.distance_pct
+  if (lapDiff === 1 && posDiff > -0.5) return 1 
+  if (lapDiff === -1 && posDiff < 0.5) return -1
+  return 0
 }
 
 const getClassColor = (classId) => {
