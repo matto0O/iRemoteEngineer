@@ -80,6 +80,16 @@
           />
         </div>
 
+        <!-- Windshield Wiper Section -->
+        <div class="section">
+          <h4>Windshield Tearoff</h4>
+          <Button
+            :label="windshieldWiper ? 'Tearoff windshield' : 'No windshield tearoff'"
+            :class="windshieldWiper ? 'p-button-warning' : 'p-button-outlined'"
+            @click="toggleWindshieldWiper"
+          />
+        </div>
+
         <!-- Clear + Send Buttons -->
         <div class="section" style="display: flex; gap: 10px; flex-wrap: wrap;">
           <Button
@@ -130,6 +140,9 @@ const isWetTyres = ref(false)
 // Fast Repair
 const fastRepair = ref(false)
 
+// Windshield Wiper
+const windshieldWiper = ref(false)
+
 // Toggle Functions
 const toggleRefueling = () => {
   isRefueling.value = !isRefueling.value
@@ -154,6 +167,10 @@ const toggleFastRepair = () => {
   fastRepair.value = !fastRepair.value
 }
 
+const toggleWindshieldWiper = () => {
+  windshieldWiper.value = !windshieldWiper.value
+}
+
 const toggleTyreType = () => {
   isWetTyres.value = !isWetTyres.value
 }
@@ -166,6 +183,7 @@ const clearSettings = () => {
     tyreStatus.value[key] = false
   }
   fastRepair.value = false
+  windshieldWiper.value = false
   isWetTyres.value = false
 }
 
@@ -198,6 +216,9 @@ const createCommand = () => {
 
   // Fast Repair
   command.push(fastRepair.value ? 'fr' : 'clear_fr')
+  
+  // Windshield Wiper
+  command.push(windshieldWiper.value ? 'ws' : 'clear_ws')
 
   const finalCommand = command.join(' ')
   console.log('Command sent:', finalCommand)

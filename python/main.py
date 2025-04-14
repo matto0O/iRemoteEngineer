@@ -224,25 +224,8 @@ def update_fuel_data():
     ollavg = full_laps_on_tank_from_avg - 1
     one_more_from_avg = fuel_left / omlavg
     one_less_from_avg = fuel_left / ollavg
-
-    # print("=" * 50)
-    # print("Fuel left: {:.2f}L".format(fuel_left))
-    # print(f"Average consumption ({fuel_delta_avg:.2f}L) prediction")
-    # print(f"To do {ollavg} laps, you need {one_less_from_avg:.2f}L of fuel per lap")
-    # print(f"To do {full_laps_on_tank_from_avg} laps, you need {(fuel_left / full_laps_on_tank_from_avg):.2f}L of fuel per lap")
-    # print(f"To do {omlavg} laps, you need {one_more_from_avg:.2f}L of fuel per lap")
     
     full_laps_on_tank_from_last = int(fuel_left / last_fuel_delta)
-    # omllast = full_laps_on_tank_from_last + 1
-    # olllast = full_laps_on_tank_from_last - 1
-    # one_more_from_last = fuel_left / omllast
-    # one_less_from_last = fuel_left / olllast
-
-    # print(f"\nLast lap's consumption ({last_fuel_delta:.2f}L) prediction")
-    # print(f"To do {olllast} laps, you need {one_less_from_last:.2f}L of fuel per lap")
-    # print(f"To do {full_laps_on_tank_from_last} laps, you need {(fuel_left / full_laps_on_tank_from_last):.2f}L of fuel per lap")
-    # print(f"To do {omllast} laps, you need {one_more_from_last:.2f}L of fuel per lap")
-    # print("=" * 50)
 
     fuel_analysis_dict = {
         "fuel_left": fuel_left,
@@ -257,10 +240,6 @@ def update_fuel_data():
         "last_lap_consumption": last_fuel_delta,
         "target_laps_last": int(full_laps_on_tank_from_last),
         "target_laps_last_consumption": (fuel_left / full_laps_on_tank_from_last),
-        # "olllast": olllast,
-        # "olllast_consumption_target": one_less_from_last,
-        # "omllast": omllast,
-        # "omllast_consumption_target": one_more_from_last,
     }
 
     with data_lock:
@@ -304,6 +283,10 @@ def execute_commands(text):
                 ir.pit_command(PitCommandMode.rr)
             case "fr":
                 ir.pit_command(PitCommandMode.fr)
+            case "ws":
+                ir.pit_command(PitCommandMode.ws)
+            case "clear_ws":
+                ir.pit_command(PitCommandMode.clear_ws)
             case "clear_fr":
                 ir.pit_command(PitCommandMode.clear_fr)
             case "clear_fuel":
@@ -366,26 +349,26 @@ if __name__ == '__main__':
     threading.Thread(target=start_api, daemon=True).start()
 
     try:
-        counter = 1 #remove counter
-        while not check_iracing(f'./python/testset/data{counter}.bin'):
+        counter = 250 #remove counter
+        while not check_iracing(f'./python/newdataset/data{counter}.bin'):
             pass
         print("iRacing connected")
         new_session_setup()
         while True:
             # to remove later #######
-            if not check_iracing(f'./python/testset/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
+            if not check_iracing(f'./python/newdataset/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
                 counter += 1
-                if counter > 14:
+                if counter > 368:
                     counter = 1
                 print("iRacing disconnected")
             # #########################
             # if not check_iracing() or not ir.is_initialized or not ir.is_connected:
             #     print("iRacing disconnected")
             if state.ir_connected:
-                check_if_in_pit()
+                # check_if_in_pit()
                 tyre_data()
                 weather_info()
-                used_fast_repair()
+                # used_fast_repair()
                 new_incidents()
                 if lap_finished():
                     update_fuel_data()
