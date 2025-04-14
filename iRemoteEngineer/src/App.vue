@@ -10,19 +10,6 @@ import useWebSocketConnection from './composables/createSocket.js';
 
 const { socket, isConnected } = useWebSocketConnection();
 
-// For debugging
-onMounted(() => {
-  console.log("App mounted");
-  console.log("Initial socket state:", socket.value);
-  console.log("Initial connection state:", isConnected.value);
-  
-  // Check again after a short delay
-  setTimeout(() => {
-    console.log("Socket after timeout:", socket.value);
-    console.log("Connection after timeout:", isConnected.value);
-  }, 1000);
-});
-
 // Instead of using socket directly, we can wrap it safely
 const safeSocket = computed(() => isConnected.value ? socket.value : null);
 </script>
@@ -38,7 +25,7 @@ const safeSocket = computed(() => isConnected.value ? socket.value : null);
       <PitSettings :socket="safeSocket" />
     </div>
     <div v-else class="loading-container">
-      <p>Connecting to race data... (Connection status: {{ isConnected ? 'Connected' : 'Disconnected' }})</p>
+      <p>Connecting to race data...</p>
     </div>
   </main>
 </template>
