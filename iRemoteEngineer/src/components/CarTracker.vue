@@ -60,6 +60,7 @@
       </div>
     </div>
     <div style="height: 50px;"></div>
+    
     <!-- Class Filter -->
     <div class="filters-container">
       <div class="filter">
@@ -99,6 +100,79 @@
       </div>
     </div>
 
+    <!-- Sortable Cars Table with PrimeVue DataTable -->
+    <div class="car-table-container">
+      <!-- Player Car Row (Pinned) -->
+      <div v-if="playerCar && !sortedFilteredCars.some(car => isPlayerCar(car))" class="player-car-row">
+        <div class="pinned-player-car">
+          <div class="player-info-cell">{{ playerCar.position }}</div>
+          <div class="player-info-cell">{{ playerCar.car_class_position }}</div>
+          <div class="player-info-cell username">{{ playerCar.user_name }}</div>
+          <div class="player-info-cell teamname">{{ playerCar.team_name }}</div>
+          <div class="player-info-cell car-number" 
+            :style="{ backgroundColor: getClassColor(playerCar.class_id), color: 'white' }">
+            {{ playerCar.car_number }}
+          </div>
+          <div class="player-info-cell gap-leader">{{ formatTime(playerCar.gap_leader) }}</div>
+          <div class="player-info-cell gap-next">-</div>
+          <div class="player-info-cell last-lap">{{ playerCar.last_lap }}</div>
+        </div>
+      </div>
+
+      <!-- PrimeVue DataTable -->
+      <DataTable 
+        :value="sortedFilteredCars" 
+        :scrollable="true" 
+        scrollHeight="400px"
+        :removableSort="true"
+        striped-rows
+        :sortField="'car_position'" 
+        :sortOrder="1"
+        class="p-datatable-sm"
+        sortMode="single"
+        @row-click="(e) => selectCar(e.data)"
+        :rowClass="(data) => {
+          return {
+            'highlighted-row': highlightedCars.includes(data.car_number),
+            'player-row': isPlayerCar(data)
+          }
+        }"
+      >
+        <Column field="car_position" header="Overall Pos" sortable style="width: 80px"></Column>
+        <Column field="car_class_position" header="Class Pos" sortable style="width: 80px"></Column>
+        <Column header="Car #" sortable style="width: 70px">
+          <template #body="slotProps">
+            <div class="car-number-cell" 
+              :style="{ backgroundColor: getClassColor(slotProps.data.class_id), color: 'white' }">
+              {{ slotProps.data.car_number }}
+            </div>
+          </template>
+        </Column>
+        <Column field="team_name" header="Team" sortable style="min-width: 120px"></Column>
+        <Column field="user_name" header="Driver" sortable style="min-width: 120px"></Column>
+        <Column header="Gap Leader" style="width: 100px">
+          <template #body="slotProps">
+            <div class="time-cell">{{ formatTime(slotProps.data.gap_leader) }}</div>
+          </template>
+        </Column>
+        <Column header="Gap Class Leader" style="width: 100px">
+          <template #body="slotProps">
+            <div class="time-cell">{{ calculateGapToClassLeader(slotProps.data) }}</div>
+          </template>
+        </Column>
+        <Column header="Gap Next" style="width: 100px">
+          <template #body="slotProps">
+            <div class="time-cell">{{ calculateGapToNext(slotProps.data, sortedFilteredCars.indexOf(slotProps.data)) }}</div>
+          </template>
+        </Column>
+        <Column header="Last Lap" field="last_lap" style="width: 100px" sortable>
+          <template #body="slotProps">
+            <div class="time-cell">{{ slotProps.data.last_lap }}</div>
+          </template>
+        </Column>
+      </DataTable>
+    </div>
+
     <!-- Selected Car Info -->
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
       <div 
@@ -119,7 +193,7 @@
         <p><strong>lap:</strong> {{ car.lap }}</p>
         <p><strong>Distance %:</strong> {{ (car.distance_pct * 100).toFixed(1) }}%</p>
         <p><strong>Position:</strong> {{ car.position }}</p>
-        <p><strong>Class Position:</strong> {{ car.class_position }}</p>
+        <p><strong>Class Position:</strong> {{ car.car_class_position }}</p>
         <button 
           @click="toggleHighlight(car)" 
           class="highlight-btn"
@@ -136,6 +210,8 @@
 import { ref, computed, watch, defineProps } from 'vue'
 import ButtonGroup from 'primevue/buttongroup'
 import Button from 'primevue/button'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 import useRaceData from '@/composables/useRaceData'
 
 const props = defineProps({
@@ -162,6 +238,50 @@ const displayModes = [
   { value: 'class_position', label: 'Class Pos' },
   { value: 'position', label: 'Overall Pos' }
 ]
+
+// Function to format time value as seconds in mm:ss.xxx format
+const formatTime = (timeValue) => {
+  if (timeValue === null || timeValue === undefined || isNaN(timeValue)) {
+    return '-'
+  }
+  
+  // Check if the time is already formatted
+  if (typeof timeValue === 'string' && timeValue.includes(':')) {
+    return timeValue
+  }
+  
+  const totalSeconds = parseFloat(timeValue)
+  
+  // Format with 3 decimal places for milliseconds
+  return `${totalSeconds.toFixed(3).padStart(6, '0')}`
+}
+
+// Calculate gap to next car
+const calculateGapToNext = (car) => {
+  if (!car || car.car_class_position == 1) return '-'
+
+  const class_ = car.class_id
+  const classPosition = car.car_class_position
+  const carInFront = data.value.cars.find(c => c.class_id === class_ && c.car_class_position === classPosition - 1)
+  
+  if (!carInFront) return '-'
+  
+  const gapDiff = car.gap_leader - carInFront.gap_leader
+  return formatTime(gapDiff)
+}
+
+// Calculate gap to next car
+const calculateGapToClassLeader = (car) => {
+  if (!car || car.car_class_position == 1) return '-'
+
+  const class_ = car.class_id
+  const carLeader = data.value.cars.find(c => c.class_id === class_ && c.car_class_position === 1)
+  
+  if (!carLeader) return '-'
+  
+  const gapDiff = car.gap_leader - carLeader.gap_leader
+  return formatTime(gapDiff)
+}
 
 // Function to get the display value based on current mode
 const getCarDisplayValue = (car) => {
@@ -208,13 +328,15 @@ watch(() => data.value.cars, (newCars) => {
     enabledClasses.value = Array.from(classes).sort((a, b) => a - b)
   }
 
-  // Update playerCarNumber
-  
-  playerCar.value = data.value.cars.find(car => car.car_number === data.value.player_car_number)
+  // Update playerCar
+  const playerCarData = newCars.find(car => car.car_number === data.value.player_car_number)
+  if (playerCarData) {
+    playerCar.value = playerCarData
+  }
 }, { deep: true })
 
 const isPlayerCar = (car) => {
-  return car.car_number === playerCar.value?.car_number
+  return car.car_number === data.value.player_car_number
 }
 
 const isPaceCar = (car) => {
@@ -222,8 +344,7 @@ const isPaceCar = (car) => {
 }
 
 const isOnSameLap = (car) => {
-  // TODO: Implement logic to check if the car is on the same lap as the player car
-  // Use tri-state logic to determine if the car is on the same lap as the player car
+  // Tri-state logic to determine if the car is on the same lap as the player car
   // 1: Lap ahead, 0: Same lap, -1: Lap down
   if (!playerCar.value) return 0 // No player car data available
 
@@ -254,14 +375,23 @@ const getClassOffset = (classId) => {
 }
 
 const uniqueClassIds = computed(() => {
+  if (!data.value.cars) return []
   const classes = new Set(data.value.cars.filter(car => car.car_number != 0).map(car => car.class_id))
   return Array.from(classes).sort((a, b) => a - b)
 })
 
 const filteredCars = computed(() => {
+  if (!data.value.cars) return []
   return enabledClasses.value.length === 0
-    ? data.value.cars
-    : data.value.cars.filter(car => enabledClasses.value.includes(car.class_id))
+    ? data.value.cars.filter(car => car.car_number != 0) // Filter out pace car
+    : data.value.cars.filter(car => enabledClasses.value.includes(car.class_id) && car.car_number != 0)
+})
+
+// Sort filtered cars by position for data table
+const sortedFilteredCars = computed(() => {
+  return [...filteredCars.value].sort((a, b) => {
+    return (a.position || 999) - (b.position || 999)
+  })
 })
 
 const toggleClass = (classId) => {
@@ -301,7 +431,6 @@ const toggleHighlight = (car) => {
   flex-direction: column;
   gap: 10px;
   position: relative;
-  /* padding-top: 60px; Add padding to accommodate car markers above the track */
 }
 
 .track-strip {
@@ -360,7 +489,7 @@ const toggleHighlight = (car) => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
 }
 
 .filter, .display-mode {
@@ -370,6 +499,114 @@ const toggleHighlight = (car) => {
   gap: 10px;
 }
 
+/* Car Table Styles */
+.car-table-container {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+/* Player Car Row (Pinned) */
+.player-car-row {
+  background-color: #e3f2fd;
+  font-weight: bold;
+  border-bottom: 2px solid #90caf9;
+  padding: 8px 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.pinned-player-car {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  pointer-events: all;
+}
+
+.player-info-cell {
+  padding: 8px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Make player cells match datatable columns */
+.player-info-cell:nth-child(1),
+.player-info-cell:nth-child(2) {
+  width: 80px;
+  text-align: center;
+}
+
+.player-info-cell.username,
+.player-info-cell.teamname {
+  min-width: 120px;
+  flex: 1;
+}
+
+.player-info-cell.car-number {
+  width: 70px;
+  text-align: center;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-info-cell.gap-leader,
+.player-info-cell.gap-next,
+.player-info-cell.last-lap {
+  width: 100px;
+  text-align: right;
+  font-family: monospace;
+}
+
+/* DataTable styling */
+:deep(.p-datatable-wrapper) {
+  overflow-y: auto;
+  height: 400px; /* Match scrollHeight of DataTable */
+}
+
+:deep(.p-datatable .p-datatable-thead > tr > th) {
+  background-color: #f5f5f5;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr) {
+  cursor: pointer;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr.highlighted-row) {
+  background-color: #fff8e1 !important;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr.player-row) {
+  background-color: #e3f2fd !important;
+  font-weight: bold;
+}
+
+/* Car number cell styling */
+.car-number-cell {
+  border-radius: 4px;
+  padding: 4px 8px;
+  text-align: center;
+  font-weight: bold;
+  width: 40px;
+  margin: auto;
+}
+
+/* Time cell styling */
+.time-cell {
+  font-family: monospace;
+  text-align: right;
+}
+
+/* Selected Car Info */
 .car-info {
   width: 300px;
   margin-top: 15px;
@@ -381,13 +618,15 @@ const toggleHighlight = (car) => {
   flex-grow: 0;
   flex-shrink: 0;
 }
-.fixed-width-value {
-  display: inline-block;
-  min-width: 50px;
+
+.car-info-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
 .car-info h4 {
-  margin: 0 0 8px;
+  margin: 0;
 }
 
 .close-btn {

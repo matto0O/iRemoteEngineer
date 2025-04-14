@@ -178,11 +178,23 @@ def relative():
     their_est_time = ir["CarIdxEstTime"]
     their_class_position = ir["CarIdxClassPosition"]
     them_pit_road = ir['CarIdxOnPitRoad']
+    their_gap_leader = ir['CarIdxF2Time']
+    their_last_lap = ir['CarIdxLastLapTime']
 
-    them = list(zip(their_class, their_position, their_distance_pct, them_pit_road, their_lap, their_est_time, their_class_position))
+    them = list(zip(their_class, their_position, their_distance_pct, them_pit_road, their_lap, their_est_time, their_class_position, their_gap_leader, their_last_lap))
 
     car_data = []
     for car, elem in zip(all_cars, them):
+        # Format last lap time to min:sec.ms format
+        last_lap_time = elem[8]
+        if last_lap_time > 0:
+            minutes = int(last_lap_time / 60)
+            seconds = int(last_lap_time % 60)
+            milliseconds = int((last_lap_time % 1) * 1000)
+            formatted_last_lap = f"{minutes}:{seconds:02d}.{milliseconds:03d}"
+        else:
+            formatted_last_lap = "--:--:---"
+            
         car_data.append({
             "user_name": car.user_name,
             "team_name": car.team_name,
@@ -190,11 +202,13 @@ def relative():
             "car_model_id": car.car_model_id,
             "car_number": car.car_number,
             "car_class_position": elem[6],
+            "gap_leader": elem[7],
             "car_position": elem[1],
             "car_est_time": elem[5],
             "distance_pct": elem[2],
             "in_pit": elem[3],
             "lap": elem[4],
+            "last_lap": formatted_last_lap,
         })
 
     with data_lock:
