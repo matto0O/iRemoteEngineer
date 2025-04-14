@@ -1,31 +1,31 @@
 <script setup>
-import { onMounted, computed } from 'vue';
-import CarTracker from './components/CarTracker.vue';
-import FuelAnalysis from './components/FuelAnalysis.vue';
-import IncidentTracker from './components/IncidentTracker.vue';
-import TyreDetails from './components/TyreDetails.vue';
-import WeatherInfo from './components/WeatherInfo.vue';
-import PitSettings from './components/PitSettings.vue';
-import useWebSocketConnection from './composables/createSocket.js';
+import EngineerPanel from './components/EngineerPanel.vue';
+import { ref } from 'vue';
 
-const { socket, isConnected } = useWebSocketConnection("wss://109a-185-164-143-35.ngrok-free.app/ws");
-
-// Instead of using socket directly, we can wrap it safely
-const safeSocket = computed(() => isConnected.value ? socket.value : null);
+const websocketLink = ref(null);
+const inputWebsocketLink = ref('');
+const confirmWebsocketLink = () => {
+  if (inputWebsocketLink.value) {
+    websocketLink.value = inputWebsocketLink.value;
+  } else {
+    alert('Please enter a valid WebSocket link.');
+  }
+};
+// wss://3dd4-185-164-143-35.ngrok-free.app/ws
 </script>
-
 <template>
   <main>
-    <div v-if="isConnected && safeSocket" class="component-container">
-      <CarTracker :socket="safeSocket" />
-      <FuelAnalysis :socket="safeSocket" />
-      <TyreDetails :socket="safeSocket" />
-      <WeatherInfo :socket="safeSocket" />
-      <IncidentTracker :socket="safeSocket" />
-      <PitSettings :socket="safeSocket" />
+    <div v-if="!websocketLink">
+      <div class="websocket-input">
+        <input 
+          type="text" 
+          v-model="inputWebsocketLink" 
+          placeholder="Enter WebSocket link"
+          class="ws-input"
+        />
+        <button @click="confirmWebsocketLink" class="confirm-btn">Connect</button>
+      </div>
     </div>
-    <div v-else class="loading-container">
-      <p>Connecting to race data...</p>
-    </div>
+    <EngineerPanel v-else :socketAddress="websocketLink" />
   </main>
 </template>
