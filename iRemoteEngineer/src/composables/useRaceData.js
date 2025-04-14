@@ -36,12 +36,11 @@ export default function useRaceData(socket) {
   }
 
   const sendCommand = (commandString) => {
-    if (socket && isConnected.value) {
+    if (socket) {
       socket.send(commandString)
       console.log("Command sent:", commandString)
     } else {
       console.warn("Cannot send command, socket not connected")
-      console.log(socket, isConnected.value)
     }
   }
 
