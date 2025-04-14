@@ -8,7 +8,7 @@ import WeatherInfo from './components/WeatherInfo.vue';
 import PitSettings from './components/PitSettings.vue';
 import useWebSocketConnection from './composables/createSocket.js';
 
-const { socket, isConnected } = useWebSocketConnection();
+const { socket, isConnected } = useWebSocketConnection("wss://109a-185-164-143-35.ngrok-free.app/ws");
 
 // Instead of using socket directly, we can wrap it safely
 const safeSocket = computed(() => isConnected.value ? socket.value : null);

@@ -4,12 +4,15 @@ from utils import State, Car, MyQueue, time_it
 import time
 import numpy as np
 from fastapi import FastAPI, WebSocket
+from fastapi.websockets import WebSocketState
 import asyncio
 import threading
 import uvicorn
 from datetime import datetime
+from pyngrok import ngrok
 
 app = FastAPI()
+exposed_port = 2137
 
 ir = IRSDK()
 state = State()
@@ -350,7 +353,8 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"WebSocket error: {e}")
     finally:
         send_task.cancel()
-        await websocket.close()
+        if websocket.client_state == WebSocketState.CONNECTED:
+            await websocket.close()
 
 
 def new_session_setup():
@@ -362,7 +366,9 @@ def new_session_setup():
     split_time_info()
 
 def start_api():
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    public_url = ngrok.connect(exposed_port)
+    print("Public URL:", public_url)
+    uvicorn.run(app, host="0.0.0.0", port=exposed_port)
 
 if __name__ == '__main__':
     threading.Thread(target=start_api, daemon=True).start()
@@ -371,7 +377,7 @@ if __name__ == '__main__':
         counter = 250 #remove counter
         while not check_iracing(f'./python/newdataset/data{counter}.bin'):
             pass
-        print("iRacing connected")
+        # print("iRacing connected")
         new_session_setup()
         while True:
             # to remove later #######
@@ -379,7 +385,7 @@ if __name__ == '__main__':
                 counter += 1
                 if counter > 368:
                     counter = 1
-                print("iRacing disconnected")
+                # print("iRacing disconnected")
             # #########################
             # if not check_iracing() or not ir.is_initialized or not ir.is_connected:
             #     print("iRacing disconnected")
