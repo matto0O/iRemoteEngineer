@@ -17,7 +17,26 @@
         v-for="car in filteredCars"
         :key="car.id" >
         <div v-if="isPlayerCar(car)"
-          class="car-marker"
+        
+        class="car-marker player-car-marker"
+          :style="{
+            left: car.distance_pct * 100 + '%',
+            backgroundColor: 'white',
+            color: getClassColor(car.class_id),
+            top: getClassOffset(car.class_id),
+            border: `2px solid ${getClassColor(car.class_id)}`,
+            transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
+            opacity: car.in_pit ? '0.5' : '1',
+            zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 7
+          }"
+          @mouseenter="hoveredCarNumber = car.car_number"
+          @mouseleave="hoveredCarNumber = null"
+          @click="selectCar(car)"
+        >
+          {{ car.car_number }}
+        </div>
+        <div v-else-if="!isPaceCar(car)"
+        class="car-marker"
           :style="{
             left: car.distance_pct * 100 + '%',
             backgroundColor: getClassColor(car.class_id),
@@ -31,24 +50,6 @@
             transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
             opacity: car.in_pit ? '0.5' : '1',
             zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 5
-          }"
-          @mouseenter="hoveredCarNumber = car.car_number"
-          @mouseleave="hoveredCarNumber = null"
-          @click="selectCar(car)"
-        >
-          {{ car.car_number }}
-        </div>
-        <div v-else
-          class="car-marker player-car-marker"
-          :style="{
-            left: car.distance_pct * 100 + '%',
-            backgroundColor: 'white',
-            color: getClassColor(car.class_id),
-            top: getClassOffset(car.class_id),
-            border: `2px solid ${getClassColor(car.class_id)}`,
-            transform: `translateX(-50%) ${hoveredCarNumber === car.car_number ? 'scale(1.2)' : highlightedCars.includes(car.car_number) ? 'scale(1.2)' : 'scale(1)'}`,
-            opacity: car.in_pit ? '0.5' : '1',
-            zIndex: hoveredCarNumber === car.car_number ? 10 : highlightedCars.includes(car.car_number) ? 9 : 7
           }"
           @mouseenter="hoveredCarNumber = car.car_number"
           @mouseleave="hoveredCarNumber = null"
@@ -170,7 +171,11 @@ watch(() => data.value.cars, (newCars) => {
 }, { deep: true })
 
 const isPlayerCar = (car) => {
-  return car.car_number !== playerCar.value?.car_number
+  return car.car_number === playerCar.value?.car_number
+}
+
+const isPaceCar = (car) => {
+  return car.car_number == 0
 }
 
 const isOnSameLap = (car) => {
@@ -206,7 +211,7 @@ const getClassOffset = (classId) => {
 }
 
 const uniqueClassIds = computed(() => {
-  const classes = new Set(data.value.cars.map(car => car.class_id))
+  const classes = new Set(data.value.cars.filter(car => car.car_number != 0).map(car => car.class_id))
   return Array.from(classes).sort((a, b) => a - b)
 })
 
