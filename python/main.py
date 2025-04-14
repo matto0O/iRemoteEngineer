@@ -172,12 +172,14 @@ def relative():
     my_car_idx = ir['PlayerCarIdx']
 
     their_class = ir['CarIdxClass']
-    their_position = ir['CarIdxClassPosition']
+    their_position = ir['CarIdxPosition']
     their_lap = ir['CarIdxLap']
     their_distance_pct = ir['CarIdxLapDistPct']
+    their_est_time = ir["CarIdxEstTime"]
+    their_class_position = ir["CarIdxClassPosition"]
     them_pit_road = ir['CarIdxOnPitRoad']
 
-    them = list(zip(their_class, their_position, their_distance_pct, them_pit_road, their_lap))
+    them = list(zip(their_class, their_position, their_distance_pct, them_pit_road, their_lap, their_est_time, their_class_position))
 
     car_data = []
     for car, elem in zip(all_cars, them):
@@ -187,6 +189,9 @@ def relative():
             "class_id": car.class_id,
             "car_model_id": car.car_model_id,
             "car_number": car.car_number,
+            "car_class_position": elem[6],
+            "car_position": elem[1],
+            "car_est_time": elem[5],
             "distance_pct": elem[2],
             "in_pit": elem[3],
             "lap": elem[4],
@@ -267,7 +272,7 @@ def check_iracing(test_file=None):
         state.ir_connected = True
     return True
 
-@time_it
+# @time_it
 def execute_commands(text):
     commands = text.split(" ")
     ir.pit_command(PitCommandMode.clear)

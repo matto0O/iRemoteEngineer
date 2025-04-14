@@ -33,7 +33,7 @@
           @mouseleave="hoveredCarNumber = null"
           @click="selectCar(car)"
         >
-          {{ car.car_number }}
+          {{ getCarDisplayValue(car) }}
         </div>
         <div v-else-if="!isPaceCar(car)"
         class="car-marker"
@@ -55,28 +55,48 @@
           @mouseleave="hoveredCarNumber = null"
           @click="selectCar(car)"
         >
-          {{ car.car_number }}
+          {{ getCarDisplayValue(car) }}
         </div>
       </div>
     </div>
     <div style="height: 50px;"></div>
     <!-- Class Filter -->
-    <div class="filter">
-      <label>Show class:</label>
-      <ButtonGroup>
-      <Button
-        v-for="classId in uniqueClassIds"
-        :key="classId"
-        :label="'Class ' + classId"
-        :class="{ 'p-button-outlined': !enabledClasses.includes(classId) }"
-        :style="{ 
-          backgroundColor: enabledClasses.includes(classId) ? getClassColor(classId) : '#d3d3d3', 
-          color: enabledClasses.includes(classId) ? 'white' : 'black',
-          border: '1px solid black'
-        }"
-        @click="toggleClass(classId)"
-      ></Button>
-      </ButtonGroup>
+    <div class="filters-container">
+      <div class="filter">
+        <label>Show class:</label>
+        <ButtonGroup>
+        <Button
+          v-for="classId in uniqueClassIds"
+          :key="classId"
+          :label="'Class ' + classId"
+          :class="{ 'p-button-outlined': !enabledClasses.includes(classId) }"
+          :style="{ 
+            backgroundColor: enabledClasses.includes(classId) ? getClassColor(classId) : '#d3d3d3', 
+            color: enabledClasses.includes(classId) ? 'white' : 'black',
+            border: '1px solid black'
+          }"
+          @click="toggleClass(classId)"
+        ></Button>
+        </ButtonGroup>
+      </div>
+      
+      <!-- Display Mode Toggle -->
+      <div class="display-mode">
+        <label>Display mode:</label>
+        <ButtonGroup>
+          <Button
+            v-for="mode in displayModes"
+            :key="mode.value"
+            :label="mode.label"
+            :class="{ 'p-button-outlined': displayMode !== mode.value }"
+            :style="{ 
+              backgroundColor: displayMode === mode.value ? '#3498db' : '#f0f0f0',
+              color: displayMode === mode.value ? 'white' : 'black'
+            }"
+            @click="displayMode = mode.value"
+          ></Button>
+        </ButtonGroup>
+      </div>
     </div>
 
     <!-- Selected Car Info -->
@@ -98,6 +118,8 @@
         <p><strong>Car Model:</strong> {{ car.car_model_id }}</p>
         <p><strong>lap:</strong> {{ car.lap }}</p>
         <p><strong>Distance %:</strong> {{ (car.distance_pct * 100).toFixed(1) }}%</p>
+        <p><strong>Position:</strong> {{ car.position }}</p>
+        <p><strong>Class Position:</strong> {{ car.class_position }}</p>
         <button 
           @click="toggleHighlight(car)" 
           class="highlight-btn"
@@ -132,6 +154,27 @@ const selectedCars = ref([])
 const highlightedCars = ref([]) // Track highlighted cars
 const sectors = ref({}) // Store sector information
 const playerCar = ref(null) // Store player car information
+
+// Display mode functionality
+const displayMode = ref('car_number') // Default display mode
+const displayModes = [
+  { value: 'car_number', label: 'Car #' },
+  { value: 'class_position', label: 'Class Pos' },
+  { value: 'position', label: 'Overall Pos' }
+]
+
+// Function to get the display value based on current mode
+const getCarDisplayValue = (car) => {
+  switch(displayMode.value) {
+    case 'class_position':
+      return car.car_class_position || '-'
+    case 'position':
+      return car.car_position || '-'
+    case 'car_number':
+    default:
+      return car.car_number
+  }
+}
 
 // Watch for sectors data in the shared race data
 watch(() => data.value.sectors, (newSectors) => {
@@ -313,7 +356,14 @@ const toggleHighlight = (car) => {
   transform: translateX(-50%) scale(1.2);
 }
 
-.filter {
+.filters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.filter, .display-mode {
   font-size: 14px;
   display: flex;
   align-items: center;
