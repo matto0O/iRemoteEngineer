@@ -7,8 +7,9 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Message from 'primevue/message';
 
+const defaultWebsocketLink = 'ws://localhost:2137/ws';
 const websocketLink = ref(null);
-const inputWebsocketLink = ref('');
+const inputWebsocketLink = ref(defaultWebsocketLink);
 
 const confirmWebsocketLink = () => {
   if (inputWebsocketLink.value) {
@@ -41,12 +42,13 @@ const confirmWebsocketLink = () => {
             <div class="p-inputgroup">
               <span class="p-inputgroup-addon">
                 <i class="pi pi-wifi"></i>
-              </span>
-              <InputText 
+                </span>
+                <InputText 
                 v-model="inputWebsocketLink" 
                 placeholder="Enter WebSocket link"
                 class="w-full"
-              />
+                :defaultValue="defaultWebsocketLink"
+                />
               <Button 
                 @click="confirmWebsocketLink" 
                 icon="pi pi-check" 
