@@ -499,9 +499,9 @@ if __name__ == '__main__':
             if state.ir_connected:
                 if sec_passed == 5:
                     check_if_in_pit()
+                    weather_info()
+                    new_incidents()
                     sec_passed = 0
-                weather_info()
-                new_incidents()
                 if lap_finished():
                     update_fuel_data()
                     tyre_data()
