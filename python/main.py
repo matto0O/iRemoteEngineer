@@ -295,7 +295,7 @@ def check_if_in_pit():
                 shared_data_json["events"].append(
                     {
                         "type": "pit_stop",
-                        "description": "Entered pit lane",
+                        "description": "Entered the pit lane",
                         "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
                     }
                 )
@@ -481,7 +481,7 @@ if __name__ == '__main__':
     threading.Thread(target=start_api, daemon=True).start()
 
     try:
-        # counter = 250 #remove counter
+        # counter = 220 #remove counter
         while not check_iracing():
             pass
         # print("iRacing connected")
@@ -489,26 +489,27 @@ if __name__ == '__main__':
         sec_passed = 0
         while True:
             # to remove later #######
-            # if not check_iracing(f'./python/newdataset/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
+            # if check_iracing(f'./python/newdataset/data{counter}.bin') and ir.is_initialized and ir.is_connected:
+            #     print(counter)
             #     counter += 1
             #     if counter > 368:
             #         counter = 1
             # #########################
             if not check_iracing() or not ir.is_initialized or not ir.is_connected:
                 print("iRacing disconnected")
-            if state.ir_connected:
-                if sec_passed == 5:
-                    check_if_in_pit()
-                    weather_info()
-                    new_incidents()
-                    sec_passed = 0
-                if lap_finished():
-                    update_fuel_data()
-                    tyre_data()
-                relative()
-            # ir.shutdown() # remove
-            time.sleep(1)
+                break
+            if sec_passed == 5:
+                check_if_in_pit()
+                weather_info()
+                new_incidents()
+                sec_passed = 0
             sec_passed += 1
+            if lap_finished():
+                update_fuel_data()
+                tyre_data()
+            relative()
+            ir.shutdown() # remove
+            time.sleep(1)
     except KeyboardInterrupt:
         # press ctrl+c to exit
         pass
