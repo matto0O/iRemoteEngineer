@@ -4,7 +4,7 @@
       <FuelAnalysis :socket="safeSocket" />
       <TyreDetails :socket="safeSocket" />
       <WeatherInfo :socket="safeSocket" />
-      <IncidentTracker :socket="safeSocket" />
+      <EventTracker :socket="safeSocket" />
       <PitSettings :socket="safeSocket" />
     </div>
     <div v-else class="loading-container">
@@ -15,7 +15,7 @@
 <script setup>
 import CarTracker from './CarTracker.vue';
 import FuelAnalysis from './FuelAnalysis.vue';
-import IncidentTracker from './IncidentTracker.vue';
+import EventTracker from './EventTracker.vue';
 import TyreDetails from './TyreDetails.vue';
 import WeatherInfo from './WeatherInfo.vue';
 import PitSettings from './PitSettings.vue';

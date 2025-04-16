@@ -56,6 +56,10 @@ class State:
     last_fuel_level = -1.0
     incidents = 0
     fast_repairs_used = 0
+    track_state = None
+    in_pit = False
+    wind_direction = None
+    wind_speed = None
 
 @dataclass
 class Car:

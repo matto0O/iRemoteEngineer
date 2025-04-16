@@ -32,10 +32,15 @@ shared_data_json = {
         "rear_left": {},
         "rear_right": {}
     },
-    "incidents": {
-        "incidents": [],
-        "total_incidents": 0,
-    },
+    "events": [
+        # example
+        # {
+        #     "type": "incident",
+        #     "description": "Incurred 4x incident",
+        #     "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+        # }
+    ],
+    "total_incidents": 0,
     "fast_repairs_used": 0,
 }
 data_lock = threading.Lock()
@@ -51,6 +56,11 @@ def used_fast_repair():
         state.fast_repairs_used = ir["PlayerFastRepairsUsed"]
         with data_lock:
             shared_data_json["fast_repairs_used"] = state.fast_repairs_used
+            shared_data_json["events"].append({
+                "type": "pit_stop",
+                "description": f"Used fast repair",
+                "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+            })
 
 # @time_it
 def new_incidents():
@@ -58,62 +68,116 @@ def new_incidents():
     if inc_diff > 0:
         state.incidents = ir["PlayerCarMyIncidentCount"]
         with data_lock:
-            shared_data_json["incidents"]["total_incidents"] = state.incidents
-            shared_data_json["incidents"]["incidents"].append((datetime.now().strftime("%d/%m/%Y, %H:%M:%S"), inc_diff))
+            shared_data_json["total_incidents"] = state.incidents
+            shared_data_json["events"].append(
+                {
+                    "type": "incident",
+                    "description": f"Incurred {inc_diff}x incident",
+                    "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+                }
+            )
 
-# @time_it
-def weather_info():
+def get_direction(to_decode=None):
     rad_to_deg = 57.296
-    a = ir["WindDir"] * rad_to_deg
-    angle = a + 22.5
+    if to_decode:
+        angle = to_decode
+    else:
+        angle = ir["WindDir"] * rad_to_deg
+    angle_middle = angle + 22.5
 
-    if angle > 0 and angle < 45:
+    if angle_middle > 0 and angle_middle < 45:
         wind_direction = "North"
-    elif angle >= 45 and angle < 90:
+    elif angle_middle >= 45 and angle_middle < 90:
         wind_direction = "North-East"
-    elif angle >= 90 and angle < 135:
+    elif angle_middle >= 90 and angle_middle < 135:
         wind_direction = "East"
-    elif angle >= 135 and angle < 180:
+    elif angle_middle >= 135 and angle_middle < 180:
         wind_direction = "South-East"
-    elif angle >= 180 and angle < 225:
+    elif angle_middle >= 180 and angle_middle < 225:
         wind_direction = "South"
-    elif angle >= 225 and angle < 270:
+    elif angle_middle >= 225 and angle_middle < 270:
         wind_direction = "South-West"
-    elif angle >= 270 and angle < 315:
+    elif angle_middle >= 270 and angle_middle < 315:
         wind_direction = "West"
-    elif angle >= 315 and angle < 360:
+    elif angle_middle >= 315 and angle_middle < 360:
         wind_direction = "North-West"
     else:
         wind_direction = "Unknown direction"
 
-    with data_lock:
-        match ir['TrackWetness']:
-            case 1:
-                track_wetness = "Dry"
-            case 2:
-                track_wetness = "Mostly dry"
-            case 3:
-                track_wetness = "Very lightly wet"
-            case 4:
-                track_wetness = "Lightly wet"
-            case 5:
-                track_wetness = "Moderately wet"
-            case 6:
-                track_wetness = "Very wet"
-            case 7:
-                track_wetness = "Extremely wet"
-            case _:
-                track_wetness = "Unknown wetness"
+    return wind_direction, angle
 
+def get_speed():
+    return ir['WindVel'] * 3.6
+
+# @time_it
+def weather_info():
+    wind_direction, angle = get_direction()
+
+    match ir['TrackWetness']:
+        case 1:
+            track_wetness = "Dry"
+        case 2:
+            track_wetness = "Mostly dry"
+        case 3:
+            track_wetness = "Very lightly wet"
+        case 4:
+            track_wetness = "Lightly wet"
+        case 5:
+            track_wetness = "Moderately wet"
+        case 6:
+            track_wetness = "Very wet"
+        case 7:
+            track_wetness = "Extremely wet"
+        case _:
+            track_wetness = "Unknown wetness"
+    
+    declared_wet = ir['WeatherDeclaredWet']
+
+    speed = get_speed()
+
+    with data_lock:
         shared_data_json["weather"] = {
             "air_temp": ir['AirTemp'],
             "track_temp": ir['TrackTempCrew'],
-            "wind_speed": ir['WindVel'] * 3.6,
-            "wind_direction": f"{wind_direction} ({a:.2f}°)",
+            "wind_speed": speed,
+            "wind_direction": f"{wind_direction} ({angle:.2f}°)",
             "track_wetness": track_wetness,
             "precipitation": round(float(ir['Precipitation']), 2), 
             "declared_wet": ir['WeatherDeclaredWet'],
         }
+
+        if declared_wet != state.track_state:
+            event_description = f"Track state changed - {"Wet" if declared_wet else "Dry"}"
+            shared_data_json["events"].append(
+                {
+                    "type": "weather",
+                    "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+                    "description": event_description,
+                }
+            )
+            state.track_state = declared_wet
+
+        if wind_direction != state.wind_direction:
+            event_description = f"Wind direction changed from {state.wind_direction} to {wind_direction}"
+            state.wind_direction = wind_direction
+            shared_data_json["events"].append(
+                {
+                    "type": "weather",
+                    "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+                    "description": event_description,
+                }
+            )
+
+        if state.wind_speed is None or abs(speed - state.wind_speed) > 5:
+            event_description = f"Wind speed changed significantly to {speed:.2f}"
+            state.wind_speed = speed
+            shared_data_json["events"].append(
+                {
+                    "type": "weather",
+                    "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+                    "description": event_description,
+                }
+            )
 
 # @time_it
 def tyre_data():
@@ -223,9 +287,32 @@ def relative():
 # @time_it
 def check_if_in_pit():
     in_pit = ir['OnPitRoad']
-    if in_pit:
-        state.last_fuel_level = ir['FuelLevel']
-        state.last_lap = ir['Lap']
+    if state.in_pit != in_pit:
+        state.in_pit = in_pit
+
+        if in_pit:
+            with data_lock:
+                shared_data_json["events"].append(
+                    {
+                        "type": "pit_stop",
+                        "description": "Entered pit lane",
+                        "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+                    }
+                )
+
+        else:
+            state.last_fuel_level = ir['FuelLevel']
+            state.last_lap = ir['Lap']
+            used_fast_repair()
+
+            with data_lock:
+                shared_data_json["events"].append(
+                    {
+                        "type": "pit_stop",
+                        "description": "Left the pit lane",
+                        "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+                    }
+                )
 
 # @time_it
 def update_fuel_data():
@@ -273,7 +360,6 @@ def lap_finished():
         return False
     if new_lap == state.last_lap + 1:
         state.last_lap = new_lap
-        print("Lap finished")
         return True
     state.last_lap = new_lap
     return False
@@ -292,43 +378,62 @@ def check_iracing(test_file=None):
 # @time_it
 def execute_commands(text):
     commands = text.split(" ")
+    executed = ["clear"]
     ir.pit_command(PitCommandMode.clear)
     for command in commands:
         match command:
             case "lf":
                 ir.pit_command(PitCommandMode.lf)
+                executed.append("lf")
             case "rf":
                 ir.pit_command(PitCommandMode.rf)
+                executed.append("rf")
             case "lr":
                 ir.pit_command(PitCommandMode.lr)
+                executed.append("lr")
             case "rr":
                 ir.pit_command(PitCommandMode.rr)
+                executed.append("rr")
             case "fr":
                 ir.pit_command(PitCommandMode.fr)
+                executed.append("fr")
             case "ws":
                 ir.pit_command(PitCommandMode.ws)
+                executed.append("ws")
             case "clear_ws":
                 ir.pit_command(PitCommandMode.clear_ws)
+                executed.append("clear_ws")
             case "clear_fr":
                 ir.pit_command(PitCommandMode.clear_fr)
+                executed.append("clear_fr")
             case "clear_fuel":
                 ir.pit_command(PitCommandMode.clear_fuel)
+                executed.append("clear_fuel")
             case _:
                 if "fuel" in command:
                     try:
                         fuel = int(command.split(".")[1])
                         ir.pit_command(PitCommandMode.fuel, fuel)
+                        executed.append(f"fuel.{fuel}")
                     except ValueError:
                         print(f"Invalid fuel command: {command}")
                 elif "tc" in command:
                     try:
                         tc = int(command.split(".")[1])
-                        # ir.pit_command(PitCommandMode., tc) # cannot solve, need to use macros for tc
+                        # ir.pit_command(PitCommandMode., tc) # TODO cannot solve, need to use macros for tc
                     except ValueError:
                         print(f"Invalid tyre change command: {command}")
-
                 else:
                     print(f"Unknown command: {command}")
+
+    with data_lock:
+        shared_data_json["events"].append(
+            {
+                "type": "command",
+                "description": f"Executed commands: {', '.join(executed)}",
+                "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+            }
+        )
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -341,7 +446,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 try:
                     await websocket.send_json(shared_data_json)
                 except Exception as e:
-                    print(f"Send error: {e}")
+                    print(f"Sent error: {e}")
                     break
 
     send_task = asyncio.create_task(send_periodic_data())
@@ -360,8 +465,10 @@ async def websocket_endpoint(websocket: WebSocket):
 def new_session_setup():
     state.last_lap = ir['Lap']
     state.incidents = ir['PlayerCarMyIncidentCount']
+    state.track_state = ir['WeatherDeclaredWet']
+    state.wind_direction, _ = get_direction(ir['WindDir'] * 57.296)
     with data_lock:
-        shared_data_json["incidents"]["total_incidents"] = state.incidents
+        shared_data_json["total_incidents"] = state.incidents
     state.fast_repairs_used = ir["PlayerFastRepairsUsed"]
     split_time_info()
 
@@ -374,32 +481,34 @@ if __name__ == '__main__':
     threading.Thread(target=start_api, daemon=True).start()
 
     try:
-        counter = 250 #remove counter
-        while not check_iracing(f'./python/newdataset/data{counter}.bin'):
+        # counter = 250 #remove counter
+        while not check_iracing():
             pass
         # print("iRacing connected")
         new_session_setup()
+        sec_passed = 0
         while True:
             # to remove later #######
-            if not check_iracing(f'./python/newdataset/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
-                counter += 1
-                if counter > 368:
-                    counter = 1
-                # print("iRacing disconnected")
+            # if not check_iracing(f'./python/newdataset/data{counter}.bin') or not ir.is_initialized or not ir.is_connected:
+            #     counter += 1
+            #     if counter > 368:
+            #         counter = 1
             # #########################
-            # if not check_iracing() or not ir.is_initialized or not ir.is_connected:
-            #     print("iRacing disconnected")
+            if not check_iracing() or not ir.is_initialized or not ir.is_connected:
+                print("iRacing disconnected")
             if state.ir_connected:
-                # check_if_in_pit()
-                tyre_data()
+                if sec_passed == 5:
+                    check_if_in_pit()
+                    sec_passed = 0
                 weather_info()
-                # used_fast_repair()
                 new_incidents()
                 if lap_finished():
                     update_fuel_data()
+                    tyre_data()
                 relative()
-            ir.shutdown() # remove
+            # ir.shutdown() # remove
             time.sleep(1)
+            sec_passed += 1
     except KeyboardInterrupt:
         # press ctrl+c to exit
         pass
