@@ -102,24 +102,6 @@
 
     <!-- Sortable Cars Table with PrimeVue DataTable -->
     <div class="car-table-container">
-      <!-- Player Car Row (Pinned) -->
-      <div v-if="playerCar && !sortedFilteredCars.some(car => isPlayerCar(car))" class="player-car-row">
-        <div class="pinned-player-car">
-          <div class="player-info-cell">{{ playerCar.position }}</div>
-          <div class="player-info-cell">{{ playerCar.car_class_position }}</div>
-          <div class="player-info-cell username">{{ playerCar.user_name }}</div>
-          <div class="player-info-cell teamname">{{ playerCar.team_name }}</div>
-          <div class="player-info-cell car-number" 
-            :style="{ backgroundColor: getClassColor(playerCar.class_id), color: 'white' }">
-            {{ playerCar.car_number }}
-          </div>
-          <div class="player-info-cell gap-leader">{{ formatTime(playerCar.gap_leader) }}</div>
-          <div class="player-info-cell gap-next">-</div>
-          <div class="player-info-cell gap-class">{{ calculateGapToNextInClass(playerCar) }}</div>
-          <div class="player-info-cell last-lap">{{ playerCar.last_lap }}</div>
-        </div>
-      </div>
-
       <!-- PrimeVue DataTable -->
       <DataTable 
         :value="sortedFilteredCars" 
@@ -156,17 +138,17 @@
             <div class="time-cell">{{ formatTime(slotProps.data.gap_leader) }}</div>
           </template>
         </Column>
-        <Column header="Gap Class Leader" style="width: 100px">
-          <template #body="slotProps">
-            <div class="time-cell">{{ calculateGapToClassLeader(slotProps.data) }}</div>
-          </template>
-        </Column>
         <Column header="Gap Next" style="width: 100px">
           <template #body="slotProps">
             <div class="time-cell">{{ calculateGapToNext(slotProps.data, sortedFilteredCars.indexOf(slotProps.data)) }}</div>
           </template>
         </Column>
-        <Column header="Gap Next (Class)" style="width: 100px">
+        <Column header="Gap Class Leader" style="width: 100px">
+          <template #body="slotProps">
+            <div class="time-cell">{{ calculateGapToClassLeader(slotProps.data) }}</div>
+          </template>
+        </Column>
+        <Column header="Gap Next in Class" style="width: 100px">
           <template #body="slotProps">
             <div class="time-cell">{{ calculateGapToNextInClass(slotProps.data) }}</div>
           </template>
