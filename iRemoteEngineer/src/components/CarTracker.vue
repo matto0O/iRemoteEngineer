@@ -115,6 +115,7 @@
           </div>
           <div class="player-info-cell gap-leader">{{ formatTime(playerCar.gap_leader) }}</div>
           <div class="player-info-cell gap-next">-</div>
+          <div class="player-info-cell gap-class">{{ calculateGapToNextInClass(playerCar) }}</div>
           <div class="player-info-cell last-lap">{{ playerCar.last_lap }}</div>
         </div>
       </div>
@@ -165,6 +166,11 @@
             <div class="time-cell">{{ calculateGapToNext(slotProps.data, sortedFilteredCars.indexOf(slotProps.data)) }}</div>
           </template>
         </Column>
+        <Column header="Gap Next (Class)" style="width: 100px">
+          <template #body="slotProps">
+            <div class="time-cell">{{ calculateGapToNextInClass(slotProps.data) }}</div>
+          </template>
+        </Column>
         <Column header="Last Lap" field="last_lap" style="width: 100px" sortable>
           <template #body="slotProps">
             <div class="time-cell">{{ slotProps.data.last_lap }}</div>
@@ -194,6 +200,8 @@
         <p><strong>Distance %:</strong> {{ (car.distance_pct * 100).toFixed(1) }}%</p>
         <p><strong>Position:</strong> {{ car.position }}</p>
         <p><strong>Class Position:</strong> {{ car.car_class_position }}</p>
+        <p><strong>Gap to Class Leader:</strong> {{ calculateGapToClassLeader(car) }}</p>
+        <p><strong>Gap to Next in Class:</strong> {{ calculateGapToNextInClass(car) }}</p>
         <button 
           @click="toggleHighlight(car)" 
           class="highlight-btn"
@@ -258,11 +266,8 @@ const formatTime = (timeValue) => {
 
 // Calculate gap to next car
 const calculateGapToNext = (car) => {
-  if (!car || car.car_class_position == 1) return '-'
-
-  const class_ = car.class_id
-  const classPosition = car.car_class_position
-  const carInFront = data.value.cars.find(c => c.class_id === class_ && c.car_class_position === classPosition - 1)
+  if (!car || car.car_position == 1) return '-'
+  const carInFront = data.value.cars.find(c => c.car_position === car.car_position - 1)
   
   if (!carInFront) return '-'
   
@@ -270,7 +275,7 @@ const calculateGapToNext = (car) => {
   return formatTime(gapDiff)
 }
 
-// Calculate gap to next car
+// Calculate gap to class leader
 const calculateGapToClassLeader = (car) => {
   if (!car || car.car_class_position == 1) return '-'
 
@@ -280,6 +285,28 @@ const calculateGapToClassLeader = (car) => {
   if (!carLeader) return '-'
   
   const gapDiff = car.gap_leader - carLeader.gap_leader
+  return formatTime(gapDiff)
+}
+
+// Calculate gap to next car in the same class
+const calculateGapToNextInClass = (car) => {
+  if (!car || !data.value.cars) return '-'
+  
+  // If car is in 1st position in its class, there's no car ahead in same class
+  if (car.car_class_position === 1) return '-'
+  
+  const class_ = car.class_id
+  
+  // Find the car directly ahead in the same class
+  const carAhead = data.value.cars.find(c => 
+    c.class_id === class_ && 
+    c.car_class_position === car.car_class_position - 1
+  )
+  
+  if (!carAhead) return '-'
+  
+  // Calculate the time gap
+  const gapDiff = car.gap_leader - carAhead.gap_leader
   return formatTime(gapDiff)
 }
 
@@ -558,6 +585,7 @@ const toggleHighlight = (car) => {
 
 .player-info-cell.gap-leader,
 .player-info-cell.gap-next,
+.player-info-cell.gap-class,
 .player-info-cell.last-lap {
   width: 100px;
   text-align: right;
