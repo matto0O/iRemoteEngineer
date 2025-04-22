@@ -1,6 +1,4 @@
 from irsdk import PitCommandMode, IRSDK
-import sched
-from utils import State, Car, MyQueue, time_it
 import time
 import numpy as np
 from fastapi import FastAPI, WebSocket
@@ -10,16 +8,21 @@ import threading
 import uvicorn
 from datetime import datetime
 from pyngrok import ngrok
+# import functools
+
+from utils import MyQueue, State, Car, Config, TaskScheduler
 
 app = FastAPI()
 exposed_port = 2137
-
 ir = IRSDK()
 state = State()
+config = Config()
+scheduler = TaskScheduler()
+
 FUEL_STRATEGY_LAPS = 5
+
 fuel_consumption = MyQueue(FUEL_STRATEGY_LAPS)
 
-# Shared car data
 shared_data_json = {
     "player_car_number": None,
     "cars": [],
@@ -32,110 +35,96 @@ shared_data_json = {
         "rear_left": {},
         "rear_right": {}
     },
-    "events": [
-        # example
-        # {
-        #     "type": "incident",
-        #     "description": "Incurred 4x incident",
-        #     "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
-        # }
-    ],
+    "events": [],
     "total_incidents": 0,
     "fast_repairs_used": 0,
 }
 data_lock = threading.Lock()
 
-# @time_it
-def split_time_info():
-    with data_lock:
-        shared_data_json["sectors"] = {(sector['SectorNum'] + 1): sector["SectorStartPct"] * 100 for sector in ir['SplitTimeInfo']['Sectors']}
-
-# @time_it
-def used_fast_repair():
-    if state.fast_repairs_used != ir["PlayerFastRepairsUsed"]:
-        state.fast_repairs_used = ir["PlayerFastRepairsUsed"]
-        with data_lock:
-            shared_data_json["fast_repairs_used"] = state.fast_repairs_used
-            shared_data_json["events"].append({
-                "type": "pit_stop",
-                "description": f"Used fast repair",
-                "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
-            })
-
-# @time_it
-def new_incidents():
-    inc_diff = ir["PlayerCarMyIncidentCount"] - state.incidents
-    if inc_diff > 0:
-        state.incidents = ir["PlayerCarMyIncidentCount"]
-        with data_lock:
-            shared_data_json["total_incidents"] = state.incidents
-            shared_data_json["events"].append(
-                {
-                    "type": "incident",
-                    "description": f"Incurred {inc_diff}x incident",
-                    "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
-                }
-            )
-
-def get_direction(to_decode=None):
+def get_direction(angle=None):
     rad_to_deg = 57.296
-    if to_decode:
-        angle = to_decode
+    if angle is not None:
+        angle_deg = angle
     else:
-        angle = ir["WindDir"] * rad_to_deg
-    angle_middle = angle + 22.5
+        angle_deg = ir["WindDir"] * rad_to_deg
+    angle_middle = angle_deg + 22.5
 
-    if angle_middle > 0 and angle_middle < 45:
+    if 0 < angle_middle < 45:
         wind_direction = "North"
-    elif angle_middle >= 45 and angle_middle < 90:
+    elif 45 <= angle_middle < 90:
         wind_direction = "North-East"
-    elif angle_middle >= 90 and angle_middle < 135:
+    elif 90 <= angle_middle < 135:
         wind_direction = "East"
-    elif angle_middle >= 135 and angle_middle < 180:
+    elif 135 <= angle_middle < 180:
         wind_direction = "South-East"
-    elif angle_middle >= 180 and angle_middle < 225:
+    elif 180 <= angle_middle < 225:
         wind_direction = "South"
-    elif angle_middle >= 225 and angle_middle < 270:
+    elif 225 <= angle_middle < 270:
         wind_direction = "South-West"
-    elif angle_middle >= 270 and angle_middle < 315:
+    elif 270 <= angle_middle < 315:
         wind_direction = "West"
-    elif angle_middle >= 315 and angle_middle < 360:
+    elif 315 <= angle_middle < 360:
         wind_direction = "North-West"
     else:
         wind_direction = "Unknown direction"
 
-    return wind_direction, angle
+    return wind_direction, angle_deg
+
+def split_time_info():
+    with data_lock:
+        sectors = ir['SplitTimeInfo']['Sectors']
+        shared_data_json["sectors"] = {(sector['SectorNum'] + 1): sector["SectorStartPct"] * 100 for sector in sectors}
+
+def used_fast_repair():
+    current_fast_repairs = ir["PlayerFastRepairsUsed"]
+    if state.fast_repairs_used != current_fast_repairs:
+        state.fast_repairs_used = current_fast_repairs
+        current_time = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+        with data_lock:
+            shared_data_json["fast_repairs_used"] = state.fast_repairs_used
+            shared_data_json["events"].append({
+                "type": "pit_stop",
+                "description": "Used fast repair",
+                "time": current_time,
+            })
+
+def new_incidents():
+    current_incidents = ir["PlayerCarMyIncidentCount"]
+    inc_diff = current_incidents - state.incidents
+    if inc_diff > 0:
+        state.incidents = current_incidents
+        current_time = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+        with data_lock:
+            shared_data_json["total_incidents"] = state.incidents
+            shared_data_json["events"].append({
+                "type": "incident",
+                "description": f"Incurred {inc_diff}x incident",
+                "time": current_time,
+            })
 
 def get_speed():
     return ir['WindVel'] * 3.6
 
-# @time_it
 def weather_info():
-    wind_direction, angle = get_direction()
-
-    match ir['TrackWetness']:
-        case 1:
-            track_wetness = "Dry"
-        case 2:
-            track_wetness = "Mostly dry"
-        case 3:
-            track_wetness = "Very lightly wet"
-        case 4:
-            track_wetness = "Lightly wet"
-        case 5:
-            track_wetness = "Moderately wet"
-        case 6:
-            track_wetness = "Very wet"
-        case 7:
-            track_wetness = "Extremely wet"
-        case _:
-            track_wetness = "Unknown wetness"
+    wind_direction, angle = get_direction(ir['WindDir'] * 57.296)
+    
+    wetness_map = {
+        1: "Dry",
+        2: "Mostly dry",
+        3: "Very lightly wet",
+        4: "Lightly wet",
+        5: "Moderately wet",
+        6: "Very wet",
+        7: "Extremely wet"
+    }
+    track_wetness = wetness_map.get(ir['TrackWetness'], "Unknown wetness")
     
     declared_wet = ir['WeatherDeclaredWet']
-
     speed = get_speed()
+    current_time = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
 
     with data_lock:
+        # Update weather data
         shared_data_json["weather"] = {
             "air_temp": ir['AirTemp'],
             "track_temp": ir['TrackTempCrew'],
@@ -143,102 +132,72 @@ def weather_info():
             "wind_direction": f"{wind_direction} ({angle:.2f}°)",
             "track_wetness": track_wetness,
             "precipitation": round(float(ir['Precipitation']), 2), 
-            "declared_wet": ir['WeatherDeclaredWet'],
+            "declared_wet": declared_wet,
         }
 
+        # Check for track state change
         if declared_wet != state.track_state:
             event_description = f"Track state changed - {"Wet" if declared_wet else "Dry"}"
-            shared_data_json["events"].append(
-                {
-                    "type": "weather",
-                    "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
-                    "description": event_description,
-                }
-            )
+            shared_data_json["events"].append({
+                "type": "weather",
+                "time": current_time,
+                "description": event_description,
+            })
             state.track_state = declared_wet
 
+        # Check for wind direction change
         if wind_direction != state.wind_direction:
             event_description = f"Wind direction changed from {state.wind_direction} to {wind_direction}"
             state.wind_direction = wind_direction
-            shared_data_json["events"].append(
-                {
-                    "type": "weather",
-                    "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
-                    "description": event_description,
-                }
-            )
+            shared_data_json["events"].append({
+                "type": "weather",
+                "time": current_time,
+                "description": event_description,
+            })
 
+        # Check for wind speed change
         if state.wind_speed is None or abs(speed - state.wind_speed) > 5:
             event_description = f"Wind speed changed significantly to {speed:.2f}"
             state.wind_speed = speed
-            shared_data_json["events"].append(
-                {
-                    "type": "weather",
-                    "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
-                    "description": event_description,
-                }
-            )
+            shared_data_json["events"].append({
+                "type": "weather",
+                "time": current_time,
+                "description": event_description,
+            })
 
-# @time_it
 def tyre_data():
-    LF = {
-        "left_carcass_temp": ir["LFtempCL"],
-        "middle_carcass_temp": ir["LFtempCM"],
-        "right_carcass_temp": ir["LFtempCR"],
-        "left_tread_remaning": ir["LFwearL"] * 100,
-        "middle_tread_remaning": ir["LFwearM"] * 100,
-        "right_tread_remaning": ir["LFwearR"] * 100
-    }
-
-    
-    RF = {
-        "left_carcass_temp": ir["RFtempCL"],
-        "middle_carcass_temp": ir["RFtempCM"],
-        "right_carcass_temp": ir["RFtempCR"],
-        "left_tread_remaning": ir["RFwearL"] * 100,
-        "middle_tread_remaning": ir["RFwearM"] * 100,
-        "right_tread_remaning": ir["RFwearR"] * 100
-    }
-
-    
-    LR = {
-        "left_carcass_temp": ir["LRtempCL"],
-        "middle_carcass_temp": ir["LRtempCM"],
-        "right_carcass_temp": ir["LRtempCR"],
-        "left_tread_remaning": ir["LRwearL"] * 100,
-        "middle_tread_remaning": ir["LRwearM"] * 100,
-        "right_tread_remaning": ir["LRwearR"] * 100
-    }
-
-    
-    RR = {
-        "left_carcass_temp": ir["RRtempCL"],
-        "middle_carcass_temp": ir["RRtempCM"],
-        "right_carcass_temp": ir["RRtempCR"],
-        "left_tread_remaning": ir["RRwearL"] * 100,
-        "middle_tread_remaning": ir["RRwearM"] * 100,
-        "right_tread_remaning": ir["RRwearR"] * 100
-    }
+    def get_tyre_data(prefix):
+        return {
+            "left_carcass_temp": ir[f"{prefix}tempCL"],
+            "middle_carcass_temp": ir[f"{prefix}tempCM"],
+            "right_carcass_temp": ir[f"{prefix}tempCR"],
+            "left_tread_remaning": ir[f"{prefix}wearL"] * 100,
+            "middle_tread_remaning": ir[f"{prefix}wearM"] * 100,
+            "right_tread_remaning": ir[f"{prefix}wearR"] * 100
+        }
 
     with data_lock:
-        shared_data_json["tyres"]["front_left"] = LF
-        shared_data_json["tyres"]["front_right"] = RF
-        shared_data_json["tyres"]["rear_left"] = LR
-        shared_data_json["tyres"]["rear_right"] = RR
+        shared_data_json["tyres"]["front_left"] = get_tyre_data("LF")
+        shared_data_json["tyres"]["front_right"] = get_tyre_data("RF")
+        shared_data_json["tyres"]["rear_left"] = get_tyre_data("LR")
+        shared_data_json["tyres"]["rear_right"] = get_tyre_data("RR")
 
-# @time_it
 def relative():
     ir.freeze_var_buffer_latest()
-    all_cars = []
-    for car in ir['DriverInfo']['Drivers']:
-        all_cars.append(Car(car['CarIdx'], car['CarNumber'], car['UserName'], car['CarID'],
-                             car['CarClassID'], car['CarScreenNameShort'], car['TeamName'],
-                               car['IRating'], car['LicString']))
-    all_cars.sort(key=lambda x: x.car_id)
-
+    
+    # Get all driver data once
+    drivers = ir['DriverInfo']['Drivers']
     my_car_idx = ir['PlayerCarIdx']
+    
+    # Use list comprehension for better performance
+    all_cars = [
+        Car(car['CarIdx'], car['CarNumber'], car['UserName'], car['CarID'],
+            car['CarClassID'], car['CarScreenNameShort'], car['TeamName'],
+            car['IRating'], car['LicString']) for car in drivers
+    ]
+    all_cars.sort(key=lambda x: x.idx)
 
-    their_class = ir['CarIdxClass']
+    # Get all arrays at once to minimize data access overhead
     their_position = ir['CarIdxPosition']
     their_lap = ir['CarIdxLap']
     their_distance_pct = ir['CarIdxLapDistPct']
@@ -248,16 +207,18 @@ def relative():
     their_gap_leader = ir['CarIdxF2Time']
     their_last_lap = ir['CarIdxLastLapTime']
 
-    them = list(zip(their_class, their_position, their_distance_pct, them_pit_road, their_lap, their_est_time, their_class_position, their_gap_leader, their_last_lap))
-
+    ir.unfreeze_var_buffer_latest()
+    # Format last lap time once for each car
     car_data = []
-    for car, elem in zip(all_cars, them):
-        # Format last lap time to min:sec.ms format
-        last_lap_time = elem[8]
-        if last_lap_time > 0:
-            minutes = int(last_lap_time / 60)
-            seconds = int(last_lap_time % 60)
-            milliseconds = int((last_lap_time % 1) * 1000)
+    for car, position, dist_pct, in_pit, lap, est_time, class_pos, gap_leader, last_lap in zip(
+            all_cars, their_position, their_distance_pct, them_pit_road,
+            their_lap, their_est_time, their_class_position, their_gap_leader, their_last_lap):
+
+        # Format last lap time efficiently
+        if last_lap > 0:
+            minutes = int(last_lap / 60)
+            seconds = int(last_lap % 60)
+            milliseconds = int((last_lap % 1) * 1000)
             formatted_last_lap = f"{minutes}:{seconds:02d}.{milliseconds:03d}"
         else:
             formatted_last_lap = "--:--:---"
@@ -268,13 +229,13 @@ def relative():
             "class_id": car.class_id,
             "car_model_id": car.car_model_id,
             "car_number": car.car_number,
-            "car_class_position": elem[6],
-            "gap_leader": elem[7],
-            "car_position": elem[1],
-            "car_est_time": elem[5],
-            "distance_pct": elem[2],
-            "in_pit": elem[3],
-            "lap": elem[4],
+            "car_class_position": class_pos,
+            "gap_leader": gap_leader,
+            "car_position": position,
+            "car_est_time": est_time,
+            "distance_pct": dist_pct,
+            "in_pit": in_pit,
+            "lap": lap,
             "last_lap": formatted_last_lap,
         })
 
@@ -282,73 +243,83 @@ def relative():
         shared_data_json["player_car_number"] = all_cars[my_car_idx].car_number
         shared_data_json["cars"] = car_data
 
-    ir.unfreeze_var_buffer_latest()
-
-# @time_it
 def check_if_in_pit():
     in_pit = ir['OnPitRoad']
     if state.in_pit != in_pit:
         state.in_pit = in_pit
+        current_time = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
 
         if in_pit:
             with data_lock:
-                shared_data_json["events"].append(
-                    {
-                        "type": "pit_stop",
-                        "description": "Entered the pit lane",
-                        "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
-                    }
-                )
-
+                shared_data_json["events"].append({
+                    "type": "pit_stop",
+                    "description": "Entered the pit lane",
+                    "time": current_time,
+                })
         else:
             state.last_fuel_level = ir['FuelLevel']
             state.last_lap = ir['Lap']
             used_fast_repair()
 
             with data_lock:
-                shared_data_json["events"].append(
-                    {
-                        "type": "pit_stop",
-                        "description": "Left the pit lane",
-                        "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
-                    }
-                )
+                shared_data_json["events"].append({
+                    "type": "pit_stop",
+                    "description": "Left the pit lane",
+                    "time": current_time,
+                })
 
-# @time_it
 def update_fuel_data():
     fuel_left = ir['FuelLevel']
     if state.last_fuel_level == -1.0:
         state.last_fuel_level = fuel_left
         return
-    else:
-        fuel_delta = state.last_fuel_level - fuel_left
-        state.last_fuel_level = fuel_left
-        fuel_consumption.put(fuel_delta)
+    
+    fuel_delta = state.last_fuel_level - fuel_left
+    state.last_fuel_level = fuel_left
+    fuel_consumption.put(fuel_delta)
 
-    fuel_delta_avg = np.mean(fuel_consumption.queue)
+    # Use np.mean only on the actual data to avoid zeros
+    if fuel_consumption.size > 0:
+        fuel_delta_avg = np.mean(fuel_consumption.queue[:fuel_consumption.size])
+    else:
+        fuel_delta_avg = 0
+        
     last_fuel_delta = fuel_consumption.last()
 
-    full_laps_on_tank_from_avg = int(fuel_left / fuel_delta_avg)
-    omlavg = full_laps_on_tank_from_avg + 1
-    ollavg = full_laps_on_tank_from_avg - 1
-    one_more_from_avg = fuel_left / omlavg
-    one_less_from_avg = fuel_left / ollavg
+    # Avoid unnecessary calculations if fuel delta is zero
+    if fuel_delta_avg > 0:
+        full_laps_on_tank_from_avg = int(fuel_left / fuel_delta_avg)
+        omlavg = full_laps_on_tank_from_avg + 1
+        ollavg = max(1, full_laps_on_tank_from_avg - 1)  # Avoid division by zero
+        one_more_from_avg = fuel_left / omlavg
+        one_less_from_avg = fuel_left / ollavg
+    else:
+        full_laps_on_tank_from_avg = 0
+        omlavg = 0
+        ollavg = 0
+        one_more_from_avg = 0
+        one_less_from_avg = 0
     
-    full_laps_on_tank_from_last = int(fuel_left / last_fuel_delta)
+    # Avoid division by zero
+    if last_fuel_delta > 0:
+        full_laps_on_tank_from_last = int(fuel_left / last_fuel_delta)
+        target_laps_last_consumption = fuel_left / full_laps_on_tank_from_last
+    else:
+        full_laps_on_tank_from_last = 0
+        target_laps_last_consumption = 0
 
     fuel_analysis_dict = {
         "fuel_left": fuel_left,
         "average_consumption": fuel_delta_avg,
         "target_laps_avg": int(full_laps_on_tank_from_avg),
-        "target_laps_avg_consumption": (fuel_left / full_laps_on_tank_from_avg),
+        "target_laps_avg_consumption": (fuel_left / full_laps_on_tank_from_avg) if full_laps_on_tank_from_avg > 0 else 0,
         "ollavg": int(ollavg),
         "ollavg_consumption_target": one_less_from_avg,
         "omlavg": int(omlavg),
         "omlavg_consumption_target": one_more_from_avg,
-
         "last_lap_consumption": last_fuel_delta,
         "target_laps_last": int(full_laps_on_tank_from_last),
-        "target_laps_last_consumption": (fuel_left / full_laps_on_tank_from_last),
+        "target_laps_last_consumption": target_laps_last_consumption,
     }
 
     with data_lock:
@@ -371,69 +342,54 @@ def check_iracing(test_file=None):
         ir.shutdown()
         return False
     elif not state.ir_connected and ir.startup(test_file=test_file) and ir.is_initialized and ir.is_connected:
-    # elif not state.ir_connected and ir.startup() and ir.is_initialized and ir.is_connected:
         state.ir_connected = True
     return True
 
-# @time_it
 def execute_commands(text):
     commands = text.split(" ")
     executed = ["clear"]
     ir.pit_command(PitCommandMode.clear)
+    
+    # Command mapping for better performance
+    command_map = {
+        "lf": PitCommandMode.lf,
+        "rf": PitCommandMode.rf,
+        "lr": PitCommandMode.lr,
+        "rr": PitCommandMode.rr,
+        "fr": PitCommandMode.fr,
+        "ws": PitCommandMode.ws,
+        "clear_ws": PitCommandMode.clear_ws,
+        "clear_fr": PitCommandMode.clear_fr,
+        "clear_fuel": PitCommandMode.clear_fuel,
+    }
+    
     for command in commands:
-        match command:
-            case "lf":
-                ir.pit_command(PitCommandMode.lf)
-                executed.append("lf")
-            case "rf":
-                ir.pit_command(PitCommandMode.rf)
-                executed.append("rf")
-            case "lr":
-                ir.pit_command(PitCommandMode.lr)
-                executed.append("lr")
-            case "rr":
-                ir.pit_command(PitCommandMode.rr)
-                executed.append("rr")
-            case "fr":
-                ir.pit_command(PitCommandMode.fr)
-                executed.append("fr")
-            case "ws":
-                ir.pit_command(PitCommandMode.ws)
-                executed.append("ws")
-            case "clear_ws":
-                ir.pit_command(PitCommandMode.clear_ws)
-                executed.append("clear_ws")
-            case "clear_fr":
-                ir.pit_command(PitCommandMode.clear_fr)
-                executed.append("clear_fr")
-            case "clear_fuel":
-                ir.pit_command(PitCommandMode.clear_fuel)
-                executed.append("clear_fuel")
-            case _:
-                if "fuel" in command:
-                    try:
-                        fuel = int(command.split(".")[1])
-                        ir.pit_command(PitCommandMode.fuel, fuel)
-                        executed.append(f"fuel.{fuel}")
-                    except ValueError:
-                        print(f"Invalid fuel command: {command}")
-                elif "tc" in command:
-                    try:
-                        tc = int(command.split(".")[1])
-                        # ir.pit_command(PitCommandMode., tc) # TODO cannot solve, need to use macros for tc
-                    except ValueError:
-                        print(f"Invalid tyre change command: {command}")
-                else:
-                    print(f"Unknown command: {command}")
+        if command in command_map:
+            ir.pit_command(command_map[command])
+            executed.append(command)
+        elif "fuel" in command:
+            try:
+                fuel = int(command.split(".")[1])
+                ir.pit_command(PitCommandMode.fuel, fuel)
+                executed.append(f"fuel.{fuel}")
+            except (ValueError, IndexError):
+                print(f"Invalid fuel command: {command}")
+        elif "tc" in command:
+            try:
+                tc = int(command.split(".")[1])
+                # ir.pit_command(PitCommandMode., tc) # TODO cannot solve, need to use macros for tc
+            except (ValueError, IndexError):
+                print(f"Invalid tyre change command: {command}")
+        else:
+            print(f"Unknown command: {command}")
 
+    current_time = datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
     with data_lock:
-        shared_data_json["events"].append(
-            {
-                "type": "command",
-                "description": f"Executed commands: {', '.join(executed)}",
-                "time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
-            }
-        )
+        shared_data_json["events"].append({
+            "type": "command",
+            "description": f"Executed commands: {', '.join(executed)}",
+            "time": current_time,
+        })
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -447,20 +403,54 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_json(shared_data_json)
                 except Exception as e:
                     print(f"Sent error: {e}")
+                    print(shared_data_json)
                     break
 
+    # Add endpoint for configuration updates
+    async def handle_commands():
+        return
+    
+    # Uncomment this block to enable command handling via WebSocket (May invite malicious commands)
+
+        # while True:
+        #     try:
+        #         text = await websocket.receive_text()
+        #         # Check if it's a configuration command
+        #         if text.startswith("config:"):
+        #             parts = text[7:].strip().split("=")
+        #             if len(parts) == 2:
+        #                 task_name, interval = parts
+        #                 if config.update_interval(task_name, float(interval)):
+        #                     # Re-register the task with the new interval
+        #                     if task_name in scheduler.tasks and hasattr(globals(), task_name):
+        #                         scheduler.register(task_name, globals()[task_name], config.get_interval(task_name))
+        #                     await websocket.send_text(f"Updated {task_name} interval to {interval} seconds")
+        #                 else:
+        #                     await websocket.send_text(f"Unknown task: {task_name}")
+        #             elif parts[0] == "loop" and len(parts) == 2:
+        #                 config.set_loop_interval(float(parts[1]))
+        #                 await websocket.send_text(f"Updated main loop interval to {parts[1]} seconds")
+        #             else:
+        #                 await websocket.send_text("Invalid config format. Use 'config:task_name=interval'")
+        #         else:
+        #             # Regular pit command
+        #             execute_commands(text)
+        #     except Exception as e:
+        #         print(f"Command error: {e}")
+        #         break
+
     send_task = asyncio.create_task(send_periodic_data())
+    command_task = asyncio.create_task(handle_commands())
+    
     try:
-        while True:
-            text = await websocket.receive_text()
-            execute_commands(text)
+        await asyncio.gather(send_task, command_task)
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
         send_task.cancel()
+        command_task.cancel()
         if websocket.client_state == WebSocketState.CONNECTED:
             await websocket.close()
-
 
 def new_session_setup():
     state.last_lap = ir['Lap']
@@ -477,39 +467,46 @@ def start_api():
     print("Public URL:", public_url)
     uvicorn.run(app, host="0.0.0.0", port=exposed_port)
 
+def register_scheduled_tasks():
+    """Register all tasks with their configured intervals"""
+    scheduler.register('relative', relative, config.get_interval('relative'))
+    scheduler.register('check_if_in_pit', check_if_in_pit, config.get_interval('check_if_in_pit'))
+    scheduler.register('weather_info', weather_info, config.get_interval('weather_info'))
+    scheduler.register('new_incidents', new_incidents, config.get_interval('new_incidents'))
+    scheduler.register('tyre_data', tyre_data, config.get_interval('tyre_data'))
+
 if __name__ == '__main__':
+    # Start API in a daemon thread
     threading.Thread(target=start_api, daemon=True).start()
 
     try:
-        # counter = 220 #remove counter
-        while not check_iracing():
+        counter = 220  # remove counter
+        while not check_iracing(f'./python/newdataset/data{counter}.bin'):
             pass
-        # print("iRacing connected")
+        
         new_session_setup()
-        sec_passed = 0
+        
+        # Register all scheduled tasks
+        register_scheduled_tasks()
+        
         while True:
             # to remove later #######
-            # if check_iracing(f'./python/newdataset/data{counter}.bin') and ir.is_initialized and ir.is_connected:
-            #     print(counter)
-            #     counter += 1
-            #     if counter > 368:
-            #         counter = 1
-            # #########################
-            if not check_iracing() or not ir.is_initialized or not ir.is_connected:
-                print("iRacing disconnected")
-                break
-            if sec_passed == 5:
-                check_if_in_pit()
-                weather_info()
-                new_incidents()
-                sec_passed = 0
-            sec_passed += 1
-            if lap_finished():
-                update_fuel_data()
-                tyre_data()
-            relative()
-            ir.shutdown() # remove
-            time.sleep(1)
+            if check_iracing(f'./python/newdataset/data{counter}.bin') and ir.is_initialized and ir.is_connected:
+                print(counter)
+                counter += 1
+                if counter > 368:
+                    counter = 1
+                
+                # Run scheduled tasks
+                scheduler.run_due_tasks()
+                
+                # Check for completed laps - this is event-based, not time-based
+                if lap_finished():
+                    update_fuel_data()
+                    tyre_data()  # Force update tire data on lap completion regardless of schedule
+                
+                ir.shutdown()  # remove
+                time.sleep(config.loop_interval)
     except KeyboardInterrupt:
         # press ctrl+c to exit
         pass
