@@ -2,22 +2,41 @@ from irsdk import PitCommandMode, IRSDK
 import time
 import numpy as np
 from fastapi import FastAPI, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.websockets import WebSocketState
 import asyncio
 import threading
 import uvicorn
 from datetime import datetime
 from pyngrok import ngrok
-# import functools
+import tkinter as tk
+import sys
+import signal
 
+from iracing_gui import IracingDataGUI
 from utils import MyQueue, State, Car, Config, TaskScheduler
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+
 exposed_port = 2137
 ir = IRSDK()
 state = State()
 config = Config()
 scheduler = TaskScheduler()
+
+server_thread = None
+ngrok_tunnel = None
+gui = None
+server = None
+exit_event = threading.Event()
 
 FUEL_STRATEGY_LAPS = 5
 
@@ -394,17 +413,17 @@ def execute_commands(text):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    print("WebSocket connection accepted")
 
     async def send_periodic_data():
-        while True:
-            await asyncio.sleep(1)
-            with data_lock:
-                try:
+        try:
+            while True:
+                await asyncio.sleep(1)
+                with data_lock:
                     await websocket.send_json(shared_data_json)
-                except Exception as e:
-                    print(f"Sent error: {e}")
-                    print(shared_data_json)
-                    break
+        except Exception as e:
+            print(f"Send error: {e}")
+            return
 
     # Add endpoint for configuration updates
     async def handle_commands():
@@ -463,9 +482,72 @@ def new_session_setup():
     split_time_info()
 
 def start_api():
-    public_url = ngrok.connect(exposed_port)
-    print("Public URL:", public_url)
-    uvicorn.run(app, host="0.0.0.0", port=exposed_port)
+    global ngrok_tunnel
+    try:
+        ngrok_config = {
+            "addr": f"localhost:{exposed_port}",
+            "proto": "http",
+            "bind_tls": True
+        }
+        ngrok_tunnel = ngrok.connect(**ngrok_config)
+        print("Public URL:", ngrok_tunnel.public_url)
+        if gui:
+            gui.message_queue.put(("info", f"Server started at {ngrok_tunnel.public_url}"))
+        return ngrok_tunnel.public_url
+    except Exception as e:
+        print(f"Error starting ngrok: {e}")
+        if gui:
+            gui.message_queue.put(("error", f"Failed to start ngrok: {e}"))
+        return None
+    
+def start_server():
+    global server_thread, server
+    try:
+        config = uvicorn.Config(
+            app, 
+            host="0.0.0.0", 
+            port=exposed_port, 
+            log_level="info",
+            reload=False
+        )
+        
+        # Start the server in a new thread
+        server = uvicorn.Server(config)
+        server_thread = threading.Thread(target=server.run, daemon=True)
+        server_thread.start()
+        
+        # Wait a moment for the server to start
+        time.sleep(2)
+        
+        # Now start the ngrok tunnel
+        return start_api()
+    except Exception as e:
+        print(f"Error starting server: {e}")
+        if gui:
+            gui.message_queue.put(("error", f"Failed to start server: {e}"))
+        return None
+
+def stop_server():
+    global server_thread, ngrok_tunnel, server
+    try:
+        if ngrok_tunnel:
+            ngrok.disconnect(ngrok_tunnel.public_url)
+            ngrok_tunnel = None
+            print("Ngrok tunnel closed")
+        
+        if server:
+            server.should_exit = True
+            server = None
+            print("Server stopped")
+
+        if server_thread:
+            server_thread.join(timeout=1)
+            server_thread = None
+            print("Server thread stopped")
+    except Exception as e:
+        print(f"Error stopping server: {e}")
+        if gui:
+            gui.message_queue.put(("error", f"Error stopping server: {e}"))
 
 def register_scheduled_tasks():
     """Register all tasks with their configured intervals"""
@@ -475,38 +557,115 @@ def register_scheduled_tasks():
     scheduler.register('new_incidents', new_incidents, config.get_interval('new_incidents'))
     scheduler.register('tyre_data', tyre_data, config.get_interval('tyre_data'))
 
-if __name__ == '__main__':
-    # Start API in a daemon thread
-    threading.Thread(target=start_api, daemon=True).start()
-
+def data_processing_loop(test_mode=True):
     try:
-        counter = 220  # remove counter
-        while not check_iracing(f'./python/newdataset/data{counter}.bin'):
-            pass
+        # Initialize iRacing connection based on mode
+        if test_mode:
+            counter = 220  # for test mode
+            while not check_iracing(f'./python/newdataset/data{counter}.bin'):
+                if exit_event.is_set():
+                    return
+                time.sleep(0.5)
+        else:
+            while not check_iracing():
+                if exit_event.is_set():
+                    return
+                time.sleep(0.5)
         
         new_session_setup()
         
         # Register all scheduled tasks
         register_scheduled_tasks()
         
-        while True:
-            # to remove later #######
-            if check_iracing(f'./python/newdataset/data{counter}.bin') and ir.is_initialized and ir.is_connected:
-                print(counter)
-                counter += 1
-                if counter > 368:
-                    counter = 1
-                
-                # Run scheduled tasks
-                scheduler.run_due_tasks()
-                
-                # Check for completed laps - this is event-based, not time-based
-                if lap_finished():
-                    update_fuel_data()
-                    tyre_data()  # Force update tire data on lap completion regardless of schedule
-                
-                ir.shutdown()  # remove
-                time.sleep(config.loop_interval)
-    except KeyboardInterrupt:
-        # press ctrl+c to exit
-        pass
+        while not exit_event.is_set():
+            # Check connection based on mode
+            if test_mode:
+                if check_iracing(f'./python/newdataset/data{counter}.bin') and ir.is_initialized and ir.is_connected:
+                    counter += 1
+                    if counter > 368:
+                        counter = 1
+                    
+                    # Run scheduled tasks
+                    scheduler.run_due_tasks()
+                    
+                    # Check for completed laps - this is event-based, not time-based
+                    if lap_finished():
+                        update_fuel_data()
+                        tyre_data()  # Force update tire data on lap completion regardless of schedule
+                    
+                    ir.shutdown()  # Only for test mode
+            else:
+                if check_iracing() and ir.is_initialized and ir.is_connected:
+                    # Run scheduled tasks
+                    scheduler.run_due_tasks()
+                    
+                    # Check for completed laps - this is event-based, not time-based
+                    if lap_finished():
+                        update_fuel_data()
+                        tyre_data()
+            
+            time.sleep(config.loop_interval)
+    except Exception as e:
+        print(f"Error in data processing: {e}")
+        if gui:
+            gui.message_queue.put(("error", f"Data processing error: {e}"))
+
+def init_gui():
+    global gui
+    
+    root = tk.Tk()
+    gui = IracingDataGUI(root)
+    
+    # Set callbacks
+    gui.set_callbacks({
+        "start_server": start_server,
+        "stop_server": stop_server,
+        "update_interval": update_interval,
+        "get_config": lambda: config
+    })
+    
+    # Populate intervals once config is loaded
+    gui.populate_intervals_tab()
+    
+    # Setup signal handlers for graceful shutdown
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, signal_handler)
+    
+    # Run the GUI
+    gui.run()
+
+def update_interval(task_name, interval):
+    if task_name == "loop":
+        config.set_loop_interval(float(interval))
+        return True
+    else:
+        success = config.update_interval(task_name, float(interval))
+        if success and task_name in scheduler.tasks:
+            # Re-register the task with the new interval
+            func = scheduler.tasks[task_name]["function"]
+            scheduler.register(task_name, func, interval)
+        return success
+
+# New function to handle shutdown signals
+def signal_handler(sig, frame):
+    print("Shutting down...")
+    exit_event.set()
+    stop_server()
+    sys.exit(0)
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='iRacing Data Application')
+    parser.add_argument('--test', action='store_true', help='Run in test mode with data files')
+    args = parser.parse_args()
+    
+    # Start the main processing loop in a separate thread
+    processing_thread = threading.Thread(
+        target=data_processing_loop, 
+        args=(args.test,),
+        daemon=True
+    )
+    processing_thread.start()
+    
+    # Start the GUI (blocking call)
+    init_gui()
