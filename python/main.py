@@ -8,7 +8,7 @@ import asyncio
 import threading
 import uvicorn
 from datetime import datetime
-from pyngrok import ngrok
+from pyngrok import ngrok, conf
 import tkinter as tk
 import sys
 import signal
@@ -32,11 +32,14 @@ state = State()
 config = Config()
 scheduler = TaskScheduler()
 
+processing_thread = None
 server_thread = None
 ngrok_tunnel = None
 gui = None
 server = None
 exit_event = threading.Event()
+
+conf.set_default(conf.PyngrokConfig(ngrok_path="./_internal/ngrok.exe"))
 
 FUEL_STRATEGY_LAPS = 5
 
@@ -500,9 +503,17 @@ def start_api():
             gui.message_queue.put(("error", f"Failed to start ngrok: {e}"))
         return None
     
-def start_server():
-    global server_thread, server
+def start_server(test_mode=False):
+    global server_thread, server, processing_thread
     try:
+        processing_thread = threading.Thread(
+            target=data_processing_loop, 
+            args=(test_mode,),
+            daemon=True
+        )
+        processing_thread.start()
+        time.sleep(1)
+
         config = uvicorn.Config(
             app, 
             host="0.0.0.0", 
@@ -517,7 +528,7 @@ def start_server():
         server_thread.start()
         
         # Wait a moment for the server to start
-        time.sleep(2)
+        time.sleep(1)
         
         # Now start the ngrok tunnel
         return start_api()
@@ -528,8 +539,13 @@ def start_server():
         return None
 
 def stop_server():
-    global server_thread, ngrok_tunnel, server
+    global server_thread, ngrok_tunnel, server, processing_thread
     try:
+        if processing_thread:
+            processing_thread.join(timeout=1)
+            processing_thread = None
+            print("Processing thread stopped")
+
         if ngrok_tunnel:
             ngrok.disconnect(ngrok_tunnel.public_url)
             ngrok_tunnel = None
@@ -562,7 +578,7 @@ def data_processing_loop(test_mode=True):
         # Initialize iRacing connection based on mode
         if test_mode:
             counter = 220  # for test mode
-            while not check_iracing(f'./python/newdataset/data{counter}.bin'):
+            while not check_iracing(f'./_internal/newdataset/data{counter}.bin'):
                 if exit_event.is_set():
                     return
                 time.sleep(0.5)
@@ -580,7 +596,7 @@ def data_processing_loop(test_mode=True):
         while not exit_event.is_set():
             # Check connection based on mode
             if test_mode:
-                if check_iracing(f'./python/newdataset/data{counter}.bin') and ir.is_initialized and ir.is_connected:
+                if check_iracing(f'./_internal/newdataset/data{counter}.bin') and ir.is_initialized and ir.is_connected:
                     counter += 1
                     if counter > 368:
                         counter = 1
@@ -618,8 +634,10 @@ def init_gui():
     
     # Set callbacks
     gui.set_callbacks({
-        "start_server": start_server,
+        "start_server": start_live_mode,
         "stop_server": stop_server,
+        "start_test_mode": start_test_mode,
+        "stop_test_mode": stop_server,
         "update_interval": update_interval,
         "get_config": lambda: config
     })
@@ -653,19 +671,11 @@ def signal_handler(sig, frame):
     stop_server()
     sys.exit(0)
 
+def start_live_mode():
+    return start_server(test_mode=False)
+
+def start_test_mode():
+    return start_server(test_mode=True)
+
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(description='iRacing Data Application')
-    parser.add_argument('--test', action='store_true', help='Run in test mode with data files')
-    args = parser.parse_args()
-    
-    # Start the main processing loop in a separate thread
-    processing_thread = threading.Thread(
-        target=data_processing_loop, 
-        args=(args.test,),
-        daemon=True
-    )
-    processing_thread.start()
-    
-    # Start the GUI (blocking call)
     init_gui()

@@ -20,15 +20,56 @@ class IracingDataGUI:
             "start_server": None,
             "stop_server": None,
             "update_interval": None,
-            "get_config": None
+            "get_config": None,
+            "start_test_mode": None,  # Add this callback
+            "stop_test_mode": None    # Add this callback
         }
         
         # Current server status
         self.server_running = False
         self.public_url = ""
+        self.test_mode_running = False  # Add this status flag
         
         self.create_widgets()
         self.start_message_checker()
+
+    def toggle_test_mode(self):
+        if not self.test_mode_running:
+            if self.callbacks["start_test_mode"]:
+                self.test_mode_btn.config(text="Starting Test...", state=tk.DISABLED)
+                self.log("Starting test mode...")
+                # Start in a separate thread to avoid blocking GUI
+                threading.Thread(target=self.start_test_mode_thread, daemon=True).start()
+        else:
+            if self.callbacks["stop_test_mode"]:
+                self.callbacks["stop_test_mode"]()
+                self.test_mode_running = False
+                self.test_mode_btn.config(text="Start Test Mode")
+                self.log("Test mode stopped")
+
+    def start_test_mode_thread(self):
+        try:
+            result = self.callbacks["start_test_mode"]()
+            self.message_queue.put(("test_mode_started", result))
+        except Exception as e:
+            self.message_queue.put(("error", str(e)))
+
+    def test_mode_started(self, url):
+        self.test_mode_running = True
+        self.test_mode_btn.config(text="Stop Test Mode", state=tk.NORMAL)
+        self.log("Test mode started")
+
+        self.public_url = url
+        self.status_label.config(text="Test server running")
+        
+        # Update URL field
+        self.url_text.config(state=tk.NORMAL)
+        self.url_text.delete(1.0, tk.END)
+        self.url_text.insert(tk.END, url)
+        self.url_text.config(state=tk.DISABLED)
+        self.copy_btn.config(state=tk.NORMAL)
+        
+        self.log(f"Server started at: {url}")
     
     def set_callbacks(self, callbacks: Dict[str, Callable]):
         """Set callback functions from main application"""
@@ -62,9 +103,17 @@ class IracingDataGUI:
         control_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Server controls
-        self.server_btn = ttk.Button(control_frame, text="Start Server", 
-                                     command=self.toggle_server)
-        self.server_btn.pack(pady=10)
+        server_buttons_frame = ttk.Frame(control_frame)
+        server_buttons_frame.pack(pady=10)
+        
+        self.server_btn = ttk.Button(server_buttons_frame, text="Start Server", 
+                                    command=self.toggle_server)
+        self.server_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Add test mode button
+        self.test_mode_btn = ttk.Button(server_buttons_frame, text="Start Test Mode", 
+                                    command=self.toggle_test_mode)
+        self.test_mode_btn.pack(side=tk.LEFT, padx=5)
         
         # Server status
         status_frame = ttk.LabelFrame(control_frame, text="Server Status")
@@ -238,9 +287,12 @@ class IracingDataGUI:
                 
                 if message_type == "server_started":
                     self.server_started(data)
+                elif message_type == "test_mode_started":
+                    self.test_mode_started(data)
                 elif message_type == "error":
                     self.log(f"Error: {data}")
                     self.server_btn.config(text="Start Server", state=tk.NORMAL)
+                    self.test_mode_btn.config(text="Start Test Mode", state=tk.NORMAL)
                 elif message_type == "log":
                     self.log(data)
         except Exception as e:
