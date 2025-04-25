@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 import threading
+import logging
 import queue
 import time
 from typing import Dict, Callable
@@ -9,8 +10,8 @@ from typing import Dict, Callable
 class IracingDataGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("iRacing Data Dashboard Control")
-        self.root.geometry("800x600")
+        self.root.title("iRemoteEngineer - Data Provider")
+        self.root.geometry("600x500")
         
         # Queue for thread-safe communication
         self.message_queue = queue.Queue()
@@ -55,21 +56,25 @@ class IracingDataGUI:
             self.message_queue.put(("error", str(e)))
 
     def test_mode_started(self, url):
-        self.test_mode_running = True
-        self.test_mode_btn.config(text="Stop Test Mode", state=tk.NORMAL)
-        self.log("Test mode started")
+        if url:
+            self.test_mode_running = True
+            self.test_mode_btn.config(text="Stop Test Mode", state=tk.NORMAL)
+            self.log("Test mode started")
 
-        self.public_url = url
-        self.status_label.config(text="Test server running")
-        
-        # Update URL field
-        self.url_text.config(state=tk.NORMAL)
-        self.url_text.delete(1.0, tk.END)
-        self.url_text.insert(tk.END, url)
-        self.url_text.config(state=tk.DISABLED)
-        self.copy_btn.config(state=tk.NORMAL)
-        
-        self.log(f"Server started at: {url}")
+            self.public_url = url
+            self.status_label.config(text="Test server running")
+            
+            # Update URL field
+            self.url_text.config(state=tk.NORMAL)
+            self.url_text.delete(1.0, tk.END)
+            self.url_text.insert(tk.END, url)
+            self.url_text.config(state=tk.DISABLED)
+            self.copy_btn.config(state=tk.NORMAL)
+            
+            self.log(f"Test server started at: {url}")
+        else:
+            self.log(f"Failed to start a test server")
+
     
     def set_callbacks(self, callbacks: Dict[str, Callable]):
         """Set callback functions from main application"""
@@ -251,19 +256,22 @@ class IracingDataGUI:
         self.log("URL copied to clipboard")
     
     def server_started(self, url):
-        self.server_running = True
-        self.public_url = url
-        self.server_btn.config(text="Stop Server", state=tk.NORMAL)
-        self.status_label.config(text="Server running")
-        
-        # Update URL field
-        self.url_text.config(state=tk.NORMAL)
-        self.url_text.delete(1.0, tk.END)
-        self.url_text.insert(tk.END, url)
-        self.url_text.config(state=tk.DISABLED)
-        self.copy_btn.config(state=tk.NORMAL)
-        
-        self.log(f"Server started at: {url}")
+        if url:
+            self.server_running = True
+            self.public_url = url
+            self.server_btn.config(text="Stop Server", state=tk.NORMAL)
+            self.status_label.config(text="Server running")
+            
+            # Update URL field
+            self.url_text.config(state=tk.NORMAL)
+            self.url_text.delete(1.0, tk.END)
+            self.url_text.insert(tk.END, url)
+            self.url_text.config(state=tk.DISABLED)
+            self.copy_btn.config(state=tk.NORMAL)
+            
+            self.log(f"Server started at: {url}")
+        else:
+            self.log(f"Failed to start a server")
     
     def log(self, message):
         timestamp = time.strftime("%H:%M:%S", time.localtime())

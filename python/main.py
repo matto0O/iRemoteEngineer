@@ -12,6 +12,7 @@ from pyngrok import ngrok, conf
 import tkinter as tk
 import sys
 import signal
+import traceback
 
 from iracing_gui import IracingDataGUI
 from utils import MyQueue, State, Car, Config, TaskScheduler
@@ -518,8 +519,9 @@ def start_server(test_mode=False):
             app, 
             host="0.0.0.0", 
             port=exposed_port, 
-            log_level="info",
-            reload=False
+            access_log=False,
+            reload=False,
+            log_config=None,
         )
         
         # Start the server in a new thread
@@ -535,7 +537,13 @@ def start_server(test_mode=False):
     except Exception as e:
         print(f"Error starting server: {e}")
         if gui:
-            gui.message_queue.put(("error", f"Failed to start server: {e}"))
+            gui.message_queue.put(("error", f"Failed to start server: {traceback.format_exc()}"))
+        if server_thread:
+            server_thread.join(timeout=1)
+            server_thread = None
+        if server:
+            server.should_exit = True
+            server = None
         return None
 
 def stop_server():
@@ -624,7 +632,7 @@ def data_processing_loop(test_mode=True):
     except Exception as e:
         print(f"Error in data processing: {e}")
         if gui:
-            gui.message_queue.put(("error", f"Data processing error: {e}"))
+            gui.message_queue.put(("error", f"Data processing error: {traceback.format_exc()}"))
 
 def init_gui():
     global gui
