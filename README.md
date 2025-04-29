@@ -14,7 +14,7 @@ iRemoteEngineer is a tool to follow, analyze and plan your races in iRacing. Lau
 1. Download the [latest release](https://github.com/matto0O/iRemoteEngineer/releases). Make sure to keep *_internal* in the same directory as the app itself.
 2. Launch the app.
 3. Configure all the intervals of data transfer - the more often the data changes, the more internet may be consumed. 
-4. If you want to see how the tool looks, select *Start test server*. Otherwise, if you have your iRacing session running, select *Start server*. <br>**Warning**: Your firewall may block the app, as it exposes your iRacing data to the internet. If you deny the internet access, you will be only able to run the UI within your local network. For those of you that are concerned about the dangers of it (rightly so), the code is fully public.
+4. If you want to see how the tool looks, select *Start test server*. Otherwise, if you have your iRacing session running, select *Start server*. <br>**Warning**: Your firewall / antivirus *may* block the app, as it exposes your iRacing data to the internet. If you deny the internet access, you will be only able to run the UI within your local network. For those of you that are concerned about the dangers of it (rightly so), the code is fully public.
 5. Once the server is running, you will get a server URL address to connect to in step 5. Also, a console may appear. I am working to fix it, but for now, please, don't close it as it shuts down the server.
 6. Launch the [UI service](https://iremoteengineer.onrender.com/) in your device of choice - same or different PC, mobile phone or a tablet. Once on the page, enter the URL you got in your server app and hit *Connect*.
 7. Enjoy all the data widgets available.
