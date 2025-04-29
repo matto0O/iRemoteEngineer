@@ -55,19 +55,27 @@ class IracingDataGUI:
         except Exception as e:
             self.message_queue.put(("error", str(e)))
 
+    def _convert_url(self, url: str) -> str:
+        """Convert the URL to a WebSocket URL"""
+        if url.startswith("http://"):
+            url = url.replace("http://", "ws://")
+        elif url.startswith("https://"):
+            url = url.replace("https://", "wss://")
+        return url + "/ws"
+
     def test_mode_started(self, url):
         if url:
             self.test_mode_running = True
             self.test_mode_btn.config(text="Stop Test Mode", state=tk.NORMAL)
             self.log("Test mode started")
 
-            self.public_url = url
+            self.public_url = self._convert_url(url)
             self.status_label.config(text="Test server running")
             
             # Update URL field
             self.url_text.config(state=tk.NORMAL)
             self.url_text.delete(1.0, tk.END)
-            self.url_text.insert(tk.END, url)
+            self.url_text.insert(tk.END, self.public_url)
             self.url_text.config(state=tk.DISABLED)
             self.copy_btn.config(state=tk.NORMAL)
             
@@ -255,17 +263,17 @@ class IracingDataGUI:
         self.root.clipboard_append(self.public_url)
         self.log("URL copied to clipboard")
     
-    def server_started(self, url):
+    def server_started(self, url: str):
         if url:
             self.server_running = True
-            self.public_url = url
+            self.public_url = self._convert_url(url)
             self.server_btn.config(text="Stop Server", state=tk.NORMAL)
             self.status_label.config(text="Server running")
             
             # Update URL field
             self.url_text.config(state=tk.NORMAL)
             self.url_text.delete(1.0, tk.END)
-            self.url_text.insert(tk.END, url)
+            self.url_text.insert(tk.END, self.public_url)
             self.url_text.config(state=tk.DISABLED)
             self.copy_btn.config(state=tk.NORMAL)
             
