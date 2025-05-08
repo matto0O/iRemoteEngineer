@@ -1,6 +1,6 @@
 # iracing_gui.py
 import tkinter as tk
-from tkinter import ttk, scrolledtext
+from tkinter import ttk, scrolledtext, messagebox
 import threading
 import logging
 import queue
@@ -8,7 +8,7 @@ import time
 from typing import Dict, Callable
 
 class IracingDataGUI:
-    def __init__(self, root):
+    def __init__(self, root, callbacks: Dict[str, Callable]):
         self.root = root
         self.root.title("iRemoteEngineer - Data Provider")
         self.root.geometry("600x500")
@@ -17,19 +17,12 @@ class IracingDataGUI:
         self.message_queue = queue.Queue()
         
         # Callbacks to be set from the main application
-        self.callbacks = {
-            "start_server": None,
-            "stop_server": None,
-            "update_interval": None,
-            "get_config": None,
-            "start_test_mode": None,  # Add this callback
-            "stop_test_mode": None    # Add this callback
-        }
+        self.callbacks = callbacks
         
         # Current server status
         self.server_running = False
         self.public_url = ""
-        self.test_mode_running = False  # Add this status flag
+        self.test_mode_running = False
         
         self.create_widgets()
         self.start_message_checker()
@@ -97,9 +90,11 @@ class IracingDataGUI:
         control_frame = ttk.Frame(notebook)
         interval_frame = ttk.Frame(notebook)
         log_frame = ttk.Frame(notebook)
+        settings_frame = ttk.Frame(notebook)  # New settings tab
         
         notebook.add(control_frame, text="Controls")
         notebook.add(interval_frame, text="Intervals")
+        notebook.add(settings_frame, text="Settings")  # Add settings tab
         notebook.add(log_frame, text="Logs")
         
         # === Control Tab ===
@@ -107,6 +102,9 @@ class IracingDataGUI:
         
         # === Intervals Tab ===
         self.create_intervals_tab(interval_frame)
+        
+        # === Settings Tab ===
+        self.create_settings_tab(settings_frame)  # Create settings tab
         
         # === Log Tab ===
         self.create_log_tab(log_frame)
@@ -157,6 +155,168 @@ class IracingDataGUI:
         self.intervals_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         ttk.Label(self.intervals_frame, text="Loading configuration...").pack(pady=20)
+    
+    def create_settings_tab(self, parent):
+        """Create the settings tab with authentication token field"""
+        settings_frame = ttk.Frame(parent)
+        settings_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Authentication token section
+        auth_frame = ttk.LabelFrame(settings_frame, text="Authentication")
+        auth_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        ttk.Label(auth_frame, text="Authentication Token:").pack(anchor=tk.W, padx=5, pady=5)
+        
+        token_frame = ttk.Frame(auth_frame)
+        token_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Variable to store the token
+        self.token_var = tk.StringVar()
+        
+        # Load existing token if available
+        if self.callbacks["get_auth_token"]:
+            current_token = self.callbacks["get_auth_token"]()
+            if current_token:
+                self.token_var.set(current_token)
+        
+        # Create token entry with show/hide functionality
+        self.token_entry = ttk.Entry(token_frame, textvariable=self.token_var, width=40, show="*")
+        self.token_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Variable to track password visibility
+        self.show_token = tk.BooleanVar(value=False)
+        
+        # Show/hide password checkbox
+        self.token_checkbox = ttk.Checkbutton(
+            token_frame, 
+            text="Show", 
+            variable=self.show_token,
+            command=self.toggle_token_visibility
+        )
+        self.token_checkbox.pack(side=tk.LEFT, padx=5)
+        
+        # Buttons frame
+        btn_frame = ttk.Frame(auth_frame)
+        btn_frame.pack(fill=tk.X, padx=5, pady=10)
+        
+        # Save button
+        self.save_token_btn = ttk.Button(
+            btn_frame, 
+            text="Save Token", 
+            command=self.save_auth_token
+        )
+        self.save_token_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Clear button
+        self.clear_token_btn = ttk.Button(
+            btn_frame, 
+            text="Clear Token", 
+            command=self.clear_auth_token
+        )
+        self.clear_token_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Add help text
+        help_text = "The authentication token is used to secure your connection. Keep it private."
+        ttk.Label(auth_frame, text=help_text, wraplength=400, foreground="gray").pack(
+            anchor=tk.W, padx=5, pady=5
+        )
+
+        # Advanced settings section
+        advanced_frame = ttk.LabelFrame(settings_frame, text="Advanced Settings")
+        advanced_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        # Port settings
+        port_frame = ttk.Frame(advanced_frame)
+        port_frame.pack(fill=tk.X, padx=5, pady=5)
+        
+        ttk.Label(port_frame, text="Exposed Port:").pack(side=tk.LEFT, padx=5)
+        
+        # Variable to store the port
+        self.port_var = tk.StringVar()
+        
+        # Load existing port if available
+        if self.callbacks["get_port"]:
+            current_port = self.callbacks["get_port"]()
+            if current_port:
+                self.port_var.set(str(current_port))
+            else:
+                self.port_var.set("8000")  # Default port
+        else:
+            self.port_var.set("8000")  # Default port
+        
+        # Port entry
+        self.port_entry = ttk.Entry(port_frame, textvariable=self.port_var, width=10)
+        self.port_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Save port button
+        self.save_port_btn = ttk.Button(
+            port_frame, 
+            text="Apply", 
+            command=self.save_port
+        )
+        self.save_port_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Add help text for port
+        port_help_text = "Configure the port used for the server. Changes require server restart."
+        ttk.Label(advanced_frame, text=port_help_text, wraplength=400, foreground="gray").pack(
+            anchor=tk.W, padx=5, pady=5
+        )
+    
+    def save_port(self):
+        """Save the exposed port setting"""
+        port_str = self.port_var.get().strip()
+        
+        if not port_str:
+            messagebox.showwarning("Empty Port", "Please enter a port number.")
+            return
+            
+        try:
+            port = int(port_str)
+            if port < 1024 or port > 65535:
+                messagebox.showwarning("Invalid Port", "Port must be between 1024 and 65535.")
+                return
+                
+            if self.callbacks["set_port"]:
+                success = self.callbacks["set_port"](port)
+                if success:
+                    self.log(f"Port updated to {port}")
+                    messagebox.showinfo("Success", f"Port updated to {port}. Restart server to apply changes.")
+                else:
+                    self.log("Failed to update port")
+                    messagebox.showerror("Error", "Failed to update port.")
+        except ValueError:
+            messagebox.showwarning("Invalid Port", "Port must be a valid number.")
+
+    def toggle_token_visibility(self):
+        """Toggle between showing and hiding the authentication token"""
+        if self.show_token.get():
+            self.token_entry.config(show="")
+        else:
+            self.token_entry.config(show="*")
+    
+    def save_auth_token(self):
+        """Save the authentication token"""
+        token = self.token_var.get().strip()
+        if not token:
+            messagebox.showwarning("Empty Token", "Please enter an authentication token.")
+            return
+        
+        if self.callbacks["set_auth_token"]:
+            success = self.callbacks["set_auth_token"](token)
+            if success:
+                self.log("Authentication token saved successfully")
+                messagebox.showinfo("Success", "Authentication token saved successfully.")
+            else:
+                self.log("Failed to save authentication token")
+                messagebox.showerror("Error", "Failed to save authentication token.")
+    
+    def clear_auth_token(self):
+        """Clear the authentication token"""
+        if messagebox.askyesno("Confirm", "Are you sure you want to clear the authentication token?"):
+            self.token_var.set("")
+            if self.callbacks["set_auth_token"]:
+                self.callbacks["set_auth_token"]("")
+                self.log("Authentication token cleared")
     
     def populate_intervals_tab(self):
         # Clear existing widgets

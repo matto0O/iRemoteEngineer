@@ -13,6 +13,8 @@ import tkinter as tk
 import sys
 import signal
 import traceback
+from configparser import ConfigParser
+import os
 
 from iracing_gui import IracingDataGUI
 from utils import MyQueue, State, Car, Config, TaskScheduler
@@ -26,8 +28,8 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+directory = "_internal"
 
-exposed_port = 2137
 ir = IRSDK()
 state = State()
 config = Config()
@@ -39,12 +41,6 @@ ngrok_tunnel = None
 gui = None
 server = None
 exit_event = threading.Event()
-
-conf.set_default(conf.PyngrokConfig(ngrok_path="./_internal/ngrok.exe"))
-
-FUEL_STRATEGY_LAPS = 5
-
-fuel_consumption = MyQueue(FUEL_STRATEGY_LAPS)
 
 shared_data_json = {
     "player_car_number": None,
@@ -63,6 +59,100 @@ shared_data_json = {
     "fast_repairs_used": 0,
 }
 data_lock = threading.Lock()
+
+def create_config():
+    file_config = ConfigParser()
+    global config
+    if not os.path.exists(f"config.ini"):
+        # Default settings
+        file_config.add_section('intervals')
+        file_config.set('intervals', 'relative', '0.5')
+        file_config.set('intervals', 'check_if_in_pit', '1.0')
+        file_config.set('intervals', 'weather_info', '5.0')
+        file_config.set('intervals', 'new_incidents', '1.0')
+        file_config.set('intervals', 'tyre_data', '5.0')
+        file_config.set('intervals', 'main_loop', '1.0')
+
+        file_config.add_section('server')
+        file_config.set('server', 'exposed_port', '3721')
+        file_config.set('server', 'ngrok_token', '')
+
+        file_config.add_section('misc')
+        file_config.set('misc', 'fuel_strategy_laps', '5')
+    else:
+        # Load existing file_config
+        file_config.read("config.ini")
+        
+        # Ensure all sections exist
+        if not file_config.has_section('intervals'):
+            file_config.add_section('intervals')
+        if not file_config.has_section('server'):
+            file_config.add_section('server')
+        if not file_config.has_section('misc'):
+            file_config.add_section('misc')
+            
+        # Set default values only if they don't exist
+        if not file_config.has_option('intervals', 'relative'):
+            file_config.set('intervals', 'relative', '0.5')
+        else:
+            config.task_intervals['relative'] = float(file_config.get('intervals', 'relative'))
+        if not file_config.has_option('intervals', 'check_if_in_pit'):
+            file_config.set('intervals', 'check_if_in_pit', '1.0')
+        else:
+            config.task_intervals['check_if_in_pit'] = float(file_config.get('intervals', 'check_if_in_pit'))
+        if not file_config.has_option('intervals', 'weather_info'):
+            file_config.set('intervals', 'weather_info', '5.0')
+        else:
+            config.task_intervals['weather_info'] = float(file_config.get('intervals', 'weather_info'))
+        if not file_config.has_option('intervals', 'new_incidents'):
+            file_config.set('intervals', 'new_incidents', '1.0')
+        else:
+            config.task_intervals['new_incidents'] = float(file_config.get('intervals', 'new_incidents'))
+        if not file_config.has_option('intervals', 'tyre_data'):
+            file_config.set('intervals', 'tyre_data', '5.0')
+        else:
+            config.task_intervals['tyre_data'] = float(file_config.get('intervals', 'tyre_data'))
+        if not file_config.has_option('intervals', 'main_loop'):
+            file_config.set('intervals', 'main_loop', '1.0')
+        else:
+            config.loop_interval = float(file_config.get('intervals', 'main_loop'))
+        if not file_config.has_option('server', 'exposed_port'):
+            file_config.set('server', 'exposed_port', '3721')
+        else:
+            config.exposed_port = int(file_config.get('server', 'exposed_port'))
+        if not file_config.has_option('server', 'ngrok_token'):
+            file_config.set('server', 'ngrok_token', '')
+        else:
+            set_auth_token(file_config.get('server', 'ngrok_token'))
+        if not file_config.has_option('misc', 'fuel_strategy_laps'):
+            file_config.set('misc', 'fuel_strategy_laps', '5')
+        else:
+            config.fuel_strategy_laps = int(file_config.get('misc', 'fuel_strategy_laps'))
+
+    file_config.write(open("config.ini", "w"))
+
+def save_config():
+    file_config = ConfigParser()
+    file_config.read("config.ini")
+    
+    # Save all intervals
+    for task_name, interval in config.task_intervals.items():
+        file_config.set('intervals', task_name, str(interval))
+    
+    # Save loop interval
+    file_config.set('intervals', 'main_loop', str(config.loop_interval))
+
+    # Save exposed port
+    file_config.set('server', 'exposed_port', str(config.exposed_port))
+
+    # Save ngrok token
+    file_config.set('server', 'ngrok_token', get_auth_token())
+
+    # Save fuel strategy laps
+    file_config.set('misc', 'fuel_strategy_laps', str(config.fuel_strategy_laps))
+
+    with open("config.ini", "w") as configfile:
+        file_config.write(configfile)
 
 def get_direction(angle=None):
     rad_to_deg = 57.296
@@ -97,6 +187,36 @@ def split_time_info():
     with data_lock:
         sectors = ir['SplitTimeInfo']['Sectors']
         shared_data_json["sectors"] = {(sector['SectorNum'] + 1): sector["SectorStartPct"] * 100 for sector in sectors}
+
+def set_auth_token(token):
+    if token:
+        file_config = ConfigParser()
+        file_config.read("config.ini")
+        file_config.set('server', 'ngrok_token', token)
+        file_config.write(open("config.ini", "w"))
+        ngrok.set_auth_token(token)
+        return True
+    return False
+
+def get_auth_token():
+    file_config = ConfigParser()
+    file_config.read("config.ini")
+    return file_config.get('server', 'ngrok_token', fallback=None)
+
+def set_port(port):
+    if port:
+        file_config = ConfigParser()
+        file_config.read("config.ini")
+        file_config.set('server', 'exposed_port', str(port))
+        file_config.write(open("config.ini", "w"))
+        config.exposed_port = int(port)
+        return True
+    return False
+
+def get_port():
+    file_config = ConfigParser()
+    file_config.read("config.ini")
+    return file_config.getint('server', 'exposed_port', fallback=3721)
 
 def used_fast_repair():
     current_fast_repairs = ir["PlayerFastRepairsUsed"]
@@ -291,7 +411,7 @@ def check_if_in_pit():
                     "time": current_time,
                 })
 
-def update_fuel_data():
+def update_fuel_data(fuel_consumption=None):
     fuel_left = ir['FuelLevel']
     if state.last_fuel_level == -1.0:
         state.last_fuel_level = fuel_left
@@ -486,10 +606,11 @@ def new_session_setup():
     split_time_info()
 
 def start_api():
-    global ngrok_tunnel
+    global ngrok_tunnel, config
     try:
+        ngrok.set_auth_token(get_auth_token())
         ngrok_config = {
-            "addr": f"localhost:{exposed_port}",
+            "addr": f"localhost:{config.exposed_port}",
             "proto": "http",
             "bind_tls": True
         }
@@ -505,7 +626,9 @@ def start_api():
         return None
     
 def start_server(test_mode=False):
-    global server_thread, server, processing_thread
+    global server_thread, server, processing_thread, config
+
+    save_config()
     try:
         processing_thread = threading.Thread(
             target=data_processing_loop, 
@@ -515,17 +638,17 @@ def start_server(test_mode=False):
         processing_thread.start()
         time.sleep(1)
 
-        config = uvicorn.Config(
+        uviconfig = uvicorn.Config(
             app, 
             host="0.0.0.0", 
-            port=exposed_port, 
+            port=config.exposed_port, 
             access_log=False,
             reload=False,
             log_config=None,
         )
         
         # Start the server in a new thread
-        server = uvicorn.Server(config)
+        server = uvicorn.Server(uviconfig)
         server_thread = threading.Thread(target=server.run, daemon=True)
         server_thread.start()
         
@@ -582,11 +705,13 @@ def register_scheduled_tasks():
     scheduler.register('tyre_data', tyre_data, config.get_interval('tyre_data'))
 
 def data_processing_loop(test_mode=True):
+    global directory, config
+    fuel_consumption = MyQueue(config.fuel_strategy_laps)
     try:
         # Initialize iRacing connection based on mode
         if test_mode:
             counter = 220  # for test mode
-            while not check_iracing(f'./_internal/newdataset/data{counter}.bin'):
+            while not check_iracing(f'./{directory}/newdataset/data{counter}.bin'):
                 if exit_event.is_set():
                     return
                 time.sleep(0.5)
@@ -604,7 +729,7 @@ def data_processing_loop(test_mode=True):
         while not exit_event.is_set():
             # Check connection based on mode
             if test_mode:
-                if check_iracing(f'./_internal/newdataset/data{counter}.bin') and ir.is_initialized and ir.is_connected:
+                if check_iracing(f'./{directory}/newdataset/data{counter}.bin') and ir.is_initialized and ir.is_connected:
                     counter += 1
                     if counter > 368:
                         counter = 1
@@ -614,7 +739,7 @@ def data_processing_loop(test_mode=True):
                     
                     # Check for completed laps - this is event-based, not time-based
                     if lap_finished():
-                        update_fuel_data()
+                        update_fuel_data(fuel_consumption)
                         tyre_data()  # Force update tire data on lap completion regardless of schedule
                     
                     ir.shutdown()  # Only for test mode
@@ -625,9 +750,9 @@ def data_processing_loop(test_mode=True):
                     
                     # Check for completed laps - this is event-based, not time-based
                     if lap_finished():
-                        update_fuel_data()
+                        update_fuel_data(fuel_consumption)
                         tyre_data()
-            
+
             time.sleep(config.loop_interval)
     except Exception as e:
         print(f"Error in data processing: {e}")
@@ -636,19 +761,22 @@ def data_processing_loop(test_mode=True):
 
 def init_gui():
     global gui
-    
-    root = tk.Tk()
-    gui = IracingDataGUI(root)
-    
-    # Set callbacks
-    gui.set_callbacks({
+
+    callbacks = {
         "start_server": start_live_mode,
         "stop_server": stop_server,
         "start_test_mode": start_test_mode,
         "stop_test_mode": stop_server,
         "update_interval": update_interval,
-        "get_config": lambda: config
-    })
+        "get_config": lambda: config,
+        "set_auth_token": set_auth_token,
+        "get_auth_token": get_auth_token,
+        "set_port": set_port,
+        "get_port": get_port 
+    }
+    
+    root = tk.Tk()
+    gui = IracingDataGUI(root, callbacks=callbacks)
     
     # Populate intervals once config is loaded
     gui.populate_intervals_tab()
@@ -661,7 +789,7 @@ def init_gui():
     gui.run()
 
 def update_interval(task_name, interval):
-    if task_name == "loop":
+    if task_name == "main_loop":
         config.set_loop_interval(float(interval))
         return True
     else:
@@ -686,4 +814,8 @@ def start_test_mode():
     return start_server(test_mode=True)
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] == "--debug":
+        directory = "python"
+    conf.set_default(conf.PyngrokConfig(ngrok_path=f"./{directory}/ngrok.exe"))
+    create_config()
     init_gui()

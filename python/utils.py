@@ -21,7 +21,6 @@ class MyQueue:
         last_pointer = (self.pointer - 1) % len(self.queue)
         return self.queue[last_pointer]
 
-
 class State:
     __slots__ = ['ir_connected', 'last_car_setup_tick', 'last_lap', 'last_fuel_level', 
                 'in_pit', 'incidents', 'track_state', 'wind_direction', 'wind_speed', 
@@ -96,7 +95,7 @@ class TaskScheduler:
                     print(f"Error running task {name}: {e}")
 
 class Config:
-    __slots__ = ['task_intervals', 'loop_interval']
+    __slots__ = ['task_intervals', 'loop_interval', 'exposed_port', 'fuel_strategy_laps']
     
     def __init__(self):
         # Default intervals in seconds
@@ -108,6 +107,8 @@ class Config:
             'tyre_data': 60.0,
         }
         self.loop_interval = 1.0         # Main loop sleep time
+        self.exposed_port = 8080
+        self.fuel_strategy_laps = 5
 
     def update_interval(self, task_name, interval):
         """Update a specific task's interval"""
