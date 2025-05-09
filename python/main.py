@@ -550,37 +550,32 @@ async def websocket_endpoint(websocket: WebSocket):
             return
 
     # Add endpoint for configuration updates
-    async def handle_commands():
-        return
-    
-    # Uncomment this block to enable command handling via WebSocket (May invite malicious commands)
-
-        # while True:
-        #     try:
-        #         text = await websocket.receive_text()
-        #         # Check if it's a configuration command
-        #         if text.startswith("config:"):
-        #             parts = text[7:].strip().split("=")
-        #             if len(parts) == 2:
-        #                 task_name, interval = parts
-        #                 if config.update_interval(task_name, float(interval)):
-        #                     # Re-register the task with the new interval
-        #                     if task_name in scheduler.tasks and hasattr(globals(), task_name):
-        #                         scheduler.register(task_name, globals()[task_name], config.get_interval(task_name))
-        #                     await websocket.send_text(f"Updated {task_name} interval to {interval} seconds")
-        #                 else:
-        #                     await websocket.send_text(f"Unknown task: {task_name}")
-        #             elif parts[0] == "loop" and len(parts) == 2:
-        #                 config.set_loop_interval(float(parts[1]))
-        #                 await websocket.send_text(f"Updated main loop interval to {parts[1]} seconds")
-        #             else:
-        #                 await websocket.send_text("Invalid config format. Use 'config:task_name=interval'")
-        #         else:
-        #             # Regular pit command
-        #             execute_commands(text)
-        #     except Exception as e:
-        #         print(f"Command error: {e}")
-        #         break
+    async def handle_commands():    
+        while True:
+            try:
+                text = await websocket.receive_text()
+                # Uncomment this block to enable command handling via WebSocket (May invite malicious commands)
+                # if text.startswith("config:"):
+                #     parts = text[7:].strip().split("=")
+                #     if len(parts) == 2:
+                #         task_name, interval = parts
+                #         if config.update_interval(task_name, float(interval)):
+                #             # Re-register the task with the new interval
+                #             if task_name in scheduler.tasks and hasattr(globals(), task_name):
+                #                 scheduler.register(task_name, globals()[task_name], config.get_interval(task_name))
+                #             await websocket.send_text(f"Updated {task_name} interval to {interval} seconds")
+                #         else:
+                #             await websocket.send_text(f"Unknown task: {task_name}")
+                #     elif parts[0] == "loop" and len(parts) == 2:
+                #         config.set_loop_interval(float(parts[1]))
+                #         await websocket.send_text(f"Updated main loop interval to {parts[1]} seconds")
+                #     else:
+                #         await websocket.send_text("Invalid config format. Use 'config:task_name=interval'")
+                # else:
+                execute_commands(text)
+            except Exception as e:
+                print(f"Command error: {e}")
+                break
 
     send_task = asyncio.create_task(send_periodic_data())
     command_task = asyncio.create_task(handle_commands())
