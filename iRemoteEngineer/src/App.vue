@@ -37,7 +37,7 @@
         
         <div class="filter-group">
           <label class="filter-label">Max Last Active</label>
-          <div v-for="option in lastActiveOptions" :key="option.value" class="radio-option">
+          <div v-for="option in last_activeOptions" :key="option.value" class="radio-option">
             <RadioButton 
               v-model="maxLastActive" 
               :inputId="'active-' + option.value" 
@@ -49,7 +49,7 @@
         
         <div class="filter-group">
           <label class="filter-label">Max Time Since Start</label>
-          <div v-for="option in timeSinceStartOptions" :key="option.value" class="radio-option">
+          <div v-for="option in time_since_startOptions" :key="option.value" class="radio-option">
             <RadioButton 
               v-model="maxTimeSinceStart" 
               :inputId="'start-' + option.value" 
@@ -74,37 +74,37 @@
       >
         <template #content>
           <div class="card-header">
-            <h3 class="card-title">{{ stream.lobbyName }}</h3>
+            <h3 class="card-title">{{ stream.lobby_name }}</h3>
             <div class="last-active">
               <i class="pi pi-clock"></i>
-              <span>{{ getTimeAgo(stream.lastActive) }}</span>
+              <span>{{ getTimeAgo(stream.last_active) }}</span>
             </div>
           </div>
           
           <div class="card-info">
             <div class="info-row">
               <i class="pi pi-map-marker info-icon"></i>
-              <span class="info-text bold">{{ stream.trackName }}</span>
+              <span class="info-text bold">{{ stream.track_name }}</span>
             </div>
             <div class="info-row">
               <i class="pi pi-trophy info-icon"></i>
-              <span class="info-text">{{ stream.seriesName }}</span>
+              <span class="info-text">{{ stream.series_name }}</span>
             </div>
             <div class="info-row">
               <i class="pi pi-hashtag info-icon"></i>
-              <span class="info-text">Session {{ stream.sessionNumber }}</span>
+              <span class="info-text">Session {{ stream.session_number }}</span>
             </div>
             <div class="info-row">
               <i class="pi pi-calendar info-icon"></i>
-              <span class="info-text">{{ stream.raceDate }}</span>
+              <span class="info-text">{{ stream.start_date }}</span>
             </div>
             <div class="info-row">
               <i class="pi pi-users info-icon"></i>
-              <span class="info-text">{{ stream.teamName }}</span>
+              <span class="info-text">{{ stream.team_name }}</span>
             </div>
             <div class="info-row">
               <i class="pi pi-car info-icon"></i>
-              <span class="info-text">{{ stream.carName }}</span>
+              <span class="info-text">{{ stream.car_name }}</span>
             </div>
           </div>
         </template>
@@ -123,8 +123,8 @@
       :style="{ width: '450px' }"
     >
       <div v-if="selectedStream" class="modal-info">
-        <p class="modal-lobby">{{ selectedStream.lobbyName }}</p>
-        <p class="modal-track">{{ selectedStream.trackName }}</p>
+        <p class="modal-lobby">{{ selectedStream.lobby_name }}</p>
+        <p class="modal-track">{{ selectedStream.track_name }}</p>
       </div>
       
       <div>
@@ -180,7 +180,7 @@ export default {
       passcode: '',
       error: '',
       allStreams: [],
-      lastActiveOptions: [
+      last_activeOptions: [
         { label: 'All', value: 'all' },
         { label: 'Last 5 min', value: 5 },
         { label: 'Last 15 min', value: 15 },
@@ -190,7 +190,7 @@ export default {
         { label: 'Last 12 hours', value: 720 },
         { label: 'Today', value: 1440 }
       ],
-      timeSinceStartOptions: [
+      time_since_startOptions: [
         { label: 'All', value: 'all' },
         { label: 'Last 5 min', value: 5 },
         { label: 'Last 15 min', value: 15 },
@@ -210,7 +210,7 @@ export default {
       return this.selectedStream !== null;
     },
     trackOptions() {
-      const tracks = [...new Set(this.allStreams.map(s => s.trackName))].sort();
+      const tracks = [...new Set(this.allStreams.map(s => s.track_name))].sort();
       return [
         { label: 'All Tracks', value: 'all' },
         ...tracks.map(track => ({ label: track, value: track }))
@@ -218,19 +218,19 @@ export default {
     },
     filteredStreams() {
       return this.allStreams.filter(stream => {
-        if (this.searchQuery && !stream.lobbyName.toLowerCase().includes(this.searchQuery.toLowerCase())) {
+        if (this.searchQuery && !stream.lobby_name.toLowerCase().includes(this.searchQuery.toLowerCase())) {
           return false;
         }
         
-        if (this.trackFilter !== 'all' && stream.trackName !== this.trackFilter) {
+        if (this.trackFilter !== 'all' && stream.track_name !== this.trackFilter) {
           return false;
         }
         
-        if (this.maxLastActive !== 'all' && stream.lastActive > this.maxLastActive) {
+        if (this.maxLastActive !== 'all' && stream.last_active > this.maxLastActive) {
           return false;
         }
         
-        if (this.maxTimeSinceStart !== 'all' && stream.timeSinceStart > this.maxTimeSinceStart) {
+        if (this.maxTimeSinceStart !== 'all' && stream.time_since_start > this.maxTimeSinceStart) {
           return false;
         }
         
@@ -241,7 +241,7 @@ export default {
   methods: {
     async fetchStreams() {
       try {
-        const response = await fetch('https://rbp6s7lzj7shsh2oytpredade40lszob.lambda-url.eu-north-1.on.aws');
+        const response = await fetch('https://mbwbbsdgq7b7fd72nfjdhquqb40upvpx.lambda-url.eu-north-1.on.aws');
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -251,15 +251,15 @@ export default {
         // Normalize data to ensure all required fields exist
         const requiredFields = {
           id: '',
-          lobbyName: '',
-          trackName: '',
-          seriesName: '',
-          sessionNumber: '',
-          raceDate: '',
-          teamName: '',
-          carName: '',
-          lastActive: 0,
-          timeSinceStart: 0
+          lobby_name: '',
+          track_name: '',
+          series_name: '',
+          session_number: '',
+          start_date: '',
+          team_name: '',
+          car_name: '',
+          last_active: 0,
+          time_since_start: 0
         };
         
         this.allStreams = data.map(stream => ({
