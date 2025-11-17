@@ -1,98 +1,572 @@
-<script setup>
-import EngineerPanel from './components/EngineerPanel.vue';
-import { ref } from 'vue';
-// Import PrimeVue components
-import InputText from 'primevue/inputtext';
-import Button from 'primevue/button';
-import Card from 'primevue/card';
-import Message from 'primevue/message';
-
-const defaultWebsocketLink = 'ws://localhost:2137/ws';
-const websocketLink = ref(null);
-const inputWebsocketLink = ref(defaultWebsocketLink);
-
-const confirmWebsocketLink = () => {
-  if (inputWebsocketLink.value) {
-    websocketLink.value = inputWebsocketLink.value;
-  }
-};
-
-// Example WebSocket URL: wss://3dd4-185-164-143-35.ngrok-free.app/ws
-</script>
-
 <template>
-  <main class="p-4">
-    <div v-if="!websocketLink" class="flex justify-content-center">
-      <Card class="connection-card">
-        <template #title>
-          <div class="flex align-items-center">
-            <i class="pi pi-link mr-2"></i>
-            <span>Race Engineer Console</span>
+  <div id="app">
+    <div class="header">
+      <h1>iRacing Data Streams</h1>
+      <p>Select a stream to access live telemetry data</p>
+    </div>
+    
+    <div class="filters-section">
+      <div class="search-bar">
+        <span class="p-input-icon-left search-input">
+          <i class="pi pi-search"></i>
+          <InputText 
+            v-model="searchQuery" 
+            placeholder="Search lobby names..." 
+            style="width: 100%"
+          />
+        </span>
+        <Button 
+          :label="showFilters ? 'Hide Filters' : 'Show Filters'" 
+          icon="pi pi-filter"
+          :severity="showFilters ? 'primary' : 'secondary'"
+          @click="showFilters = !showFilters"
+        />
+      </div>
+      
+      <div v-if="showFilters" class="filter-grid">
+        <div class="filter-group">
+          <label class="filter-label">Track</label>
+          <Dropdown 
+            v-model="trackFilter" 
+            :options="trackOptions" 
+            optionLabel="label" 
+            optionValue="value"
+            placeholder="Select a track"
+          />
+        </div>
+        
+        <div class="filter-group">
+          <label class="filter-label">Max Last Active</label>
+          <div v-for="option in lastActiveOptions" :key="option.value" class="radio-option">
+            <RadioButton 
+              v-model="maxLastActive" 
+              :inputId="'active-' + option.value" 
+              :value="option.value"
+            />
+            <label :for="'active-' + option.value">{{ option.label }}</label>
           </div>
-        </template>
-        <template #subtitle>
-          Connect to your racing telemetry WebSocket
-        </template>
+        </div>
+        
+        <div class="filter-group">
+          <label class="filter-label">Max Time Since Start</label>
+          <div v-for="option in timeSinceStartOptions" :key="option.value" class="radio-option">
+            <RadioButton 
+              v-model="maxTimeSinceStart" 
+              :inputId="'start-' + option.value" 
+              :value="option.value"
+            />
+            <label :for="'start-' + option.value">{{ option.label }}</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="results-count">
+      Showing {{ filteredStreams.length }} of {{ allStreams.length }} streams
+    </div>
+    
+    <div class="streams-grid">
+      <Card 
+        v-for="stream in filteredStreams" 
+        :key="stream.id" 
+        class="stream-card"
+        @click="selectedStream = stream"
+      >
         <template #content>
-          <div class="connection-form">
-            <Message severity="info" class="mb-3">
-              Your link likely looks like wss://{session_address}.ngrok-free.app/ws
-            </Message>
-            
-            <div class="p-inputgroup">
-              <span class="p-inputgroup-addon">
-                <i class="pi pi-wifi"></i>
-                </span>
-                <InputText 
-                v-model="inputWebsocketLink" 
-                placeholder="Enter WebSocket link"
-                class="w-full"
-                :defaultValue="defaultWebsocketLink"
-                />
-              <Button 
-                @click="confirmWebsocketLink" 
-                icon="pi pi-check" 
-                label="Connect"
-                class="p-button-success"
-              />
+          <div class="card-header">
+            <h3 class="card-title">{{ stream.lobbyName }}</h3>
+            <div class="last-active">
+              <i class="pi pi-clock"></i>
+              <span>{{ getTimeAgo(stream.lastActive) }}</span>
+            </div>
+          </div>
+          
+          <div class="card-info">
+            <div class="info-row">
+              <i class="pi pi-map-marker info-icon"></i>
+              <span class="info-text bold">{{ stream.trackName }}</span>
+            </div>
+            <div class="info-row">
+              <i class="pi pi-trophy info-icon"></i>
+              <span class="info-text">{{ stream.seriesName }}</span>
+            </div>
+            <div class="info-row">
+              <i class="pi pi-hashtag info-icon"></i>
+              <span class="info-text">Session {{ stream.sessionNumber }}</span>
+            </div>
+            <div class="info-row">
+              <i class="pi pi-calendar info-icon"></i>
+              <span class="info-text">{{ stream.raceDate }}</span>
+            </div>
+            <div class="info-row">
+              <i class="pi pi-users info-icon"></i>
+              <span class="info-text">{{ stream.teamName }}</span>
+            </div>
+            <div class="info-row">
+              <i class="pi pi-car info-icon"></i>
+              <span class="info-text">{{ stream.carName }}</span>
             </div>
           </div>
         </template>
       </Card>
     </div>
-    <EngineerPanel v-else :socketAddress="websocketLink" />
-  </main>
+    
+    <div v-if="filteredStreams.length === 0" class="no-results">
+      No streams match your filters
+    </div>
+    
+    <Dialog 
+      :visible="showModal" 
+      @update:visible="closeModal"
+      header="Enter Passcode" 
+      :modal="true"
+      :style="{ width: '450px' }"
+    >
+      <div v-if="selectedStream" class="modal-info">
+        <p class="modal-lobby">{{ selectedStream.lobbyName }}</p>
+        <p class="modal-track">{{ selectedStream.trackName }}</p>
+      </div>
+      
+      <div>
+        <label for="passcode" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Passcode</label>
+        <Password 
+          id="passcode"
+          v-model="passcode" 
+          :feedback="false"
+          placeholder="Enter passcode"
+          style="width: 100%"
+          @keyup.enter="handleSubmit"
+        />
+        <p v-if="error" class="error-text">{{ error }}</p>
+        <p class="hint-text">Hint: The passcode is 1234</p>
+      </div>
+      
+      <template #footer>
+        <Button label="Cancel" severity="secondary" @click="closeModal" />
+        <Button label="Submit" @click="handleSubmit" />
+      </template>
+    </Dialog>
+  </div>
 </template>
 
-<style>
-/* Import PrimeVue theme - add this to your main.js or index.js */
-/* 
-import PrimeVue from 'primevue/config';
-import 'primevue/resources/themes/lara-light-blue/theme.css';
-import 'primevue/resources/primevue.min.css';
-import 'primeicons/primeicons.css';
-*/
+<script>
+import Card from 'primevue/card';
+import Button from 'primevue/button';
+import InputText from 'primevue/inputtext';
+import Dropdown from 'primevue/dropdown';
+import RadioButton from 'primevue/radiobutton';
+import Dialog from 'primevue/dialog';
+import Password from 'primevue/password';
 
-.connection-card {
-  max-width: 600px;
-  width: 100%;
-  margin-top: 2rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.connection-form {
-  padding: 1rem 0;
-}
-
-main {
-  min-height: 100vh;
-  background-color: #f8f9fa;
-}
-
-@media (max-width: 768px) {
-  .connection-card {
-    margin: 1rem;
-    width: auto;
+export default {
+  name: 'App',
+  components: {
+    Card,
+    Button,
+    InputText,
+    Dropdown,
+    RadioButton,
+    Dialog,
+    Password
+  },
+  data() {
+    return {
+      searchQuery: '',
+      showFilters: false,
+      trackFilter: 'all',
+      maxLastActive: 'all',
+      maxTimeSinceStart: 'all',
+      selectedStream: null,
+      passcode: '',
+      error: '',
+      allStreams: [
+        {
+          id: 1,
+          lobbyName: 'Thunder Road Racing',
+          trackName: 'Daytona International Speedway',
+          seriesName: 'NASCAR Cup Series',
+          sessionNumber: 3,
+          raceDate: 'November 15, 2025 14:30',
+          teamName: 'Hendrick Motorsports',
+          carName: 'Chevrolet Camaro ZL1',
+          lastActive: 5,
+          timeSinceStart: 45
+        },
+        {
+          id: 2,
+          lobbyName: 'European Endurance League',
+          trackName: 'Spa-Francorchamps',
+          seriesName: 'iRacing Endurance Series',
+          sessionNumber: 2,
+          raceDate: 'November 12, 2025 16:00',
+          teamName: 'Red Bull Racing',
+          carName: 'Porsche 911 GT3 R',
+          lastActive: 2,
+          timeSinceStart: 120
+        },
+        {
+          id: 3,
+          lobbyName: 'Glen Masters GT',
+          trackName: 'Watkins Glen',
+          seriesName: 'IMSA Series',
+          sessionNumber: 1,
+          raceDate: 'November 18, 2025 19:15',
+          teamName: 'Corvette Racing',
+          carName: 'Chevrolet Corvette C8.R',
+          lastActive: 15,
+          timeSinceStart: 30
+        },
+        {
+          id: 4,
+          lobbyName: 'Nordschleife Legends',
+          trackName: 'Nürburgring GP-Strecke',
+          seriesName: 'VRS GT Sprint Series',
+          sessionNumber: 4,
+          raceDate: 'November 20, 2025 13:45',
+          teamName: 'BMW Motorsport',
+          carName: 'BMW M4 GT3',
+          lastActive: 60,
+          timeSinceStart: 90
+        },
+        {
+          id: 5,
+          lobbyName: 'Indy 500 Qualifiers',
+          trackName: 'Indianapolis Motor Speedway',
+          seriesName: 'IndyCar Series',
+          sessionNumber: 2,
+          raceDate: 'November 22, 2025 17:00',
+          teamName: 'Team Penske',
+          carName: 'Dallara IR-18',
+          lastActive: 1,
+          timeSinceStart: 25
+        },
+        {
+          id: 6,
+          lobbyName: 'Le Mans Night Hawks',
+          trackName: 'Circuit de la Sarthe',
+          seriesName: 'Le Mans Series',
+          sessionNumber: 1,
+          raceDate: 'November 25, 2025 22:00',
+          teamName: 'Toyota Gazoo Racing',
+          carName: 'Toyota GR010 Hybrid',
+          lastActive: 3,
+          timeSinceStart: 180
+        },
+        {
+          id: 7,
+          lobbyName: 'American GT Challenge',
+          trackName: 'Road America',
+          seriesName: 'GT World Challenge',
+          sessionNumber: 3,
+          raceDate: 'November 28, 2025 15:30',
+          teamName: 'Mercedes-AMG',
+          carName: 'Mercedes-AMG GT3',
+          lastActive: 8,
+          timeSinceStart: 55
+        },
+        {
+          id: 8,
+          lobbyName: 'Sebring Sprint Masters',
+          trackName: 'Sebring International Raceway',
+          seriesName: 'iRacing Sports Car Championship',
+          sessionNumber: 2,
+          raceDate: 'December 1, 2025 18:45',
+          teamName: 'Acura Team Penske',
+          carName: 'Acura ARX-06',
+          lastActive: 30,
+          timeSinceStart: 40
+        },
+        {
+          id: 9,
+          lobbyName: 'Pacific Rim GT Series',
+          trackName: 'Suzuka Circuit',
+          seriesName: 'Super GT Series',
+          sessionNumber: 4,
+          raceDate: 'December 5, 2025 11:00',
+          teamName: 'Nissan Motorsports',
+          carName: 'Nissan GT-R NISMO GT3',
+          lastActive: 120,
+          timeSinceStart: 150
+        },
+        {
+          id: 10,
+          lobbyName: 'Mount Panorama Elites',
+          trackName: 'Mount Panorama',
+          seriesName: 'Bathurst 12 Hour',
+          sessionNumber: 1,
+          raceDate: 'December 8, 2025 09:30',
+          teamName: 'Audi Sport',
+          carName: 'Audi R8 LMS GT3',
+          lastActive: 10,
+          timeSinceStart: 65
+        }
+      ],
+      lastActiveOptions: [
+        { label: 'All', value: 'all' },
+        { label: 'Last 5 min', value: 5 },
+        { label: 'Last 15 min', value: 15 },
+        { label: 'Last 30 min', value: 30 },
+        { label: 'Last 1 hour', value: 60 },
+        { label: 'Last 3 hours', value: 180 },
+        { label: 'Last 12 hours', value: 720 },
+        { label: 'Today', value: 1440 }
+      ],
+      timeSinceStartOptions: [
+        { label: 'All', value: 'all' },
+        { label: 'Last 5 min', value: 5 },
+        { label: 'Last 15 min', value: 15 },
+        { label: 'Last 30 min', value: 30 },
+        { label: 'Last 1 hour', value: 60 },
+        { label: 'Last 3 hours', value: 180 },
+        { label: 'Last 12 hours', value: 720 },
+        { label: 'Today', value: 1440 }
+      ]
+    };
+  },
+  computed: {
+    showModal() {
+      return this.selectedStream !== null;
+    },
+    trackOptions() {
+      const tracks = [...new Set(this.allStreams.map(s => s.trackName))].sort();
+      return [
+        { label: 'All Tracks', value: 'all' },
+        ...tracks.map(track => ({ label: track, value: track }))
+      ];
+    },
+    filteredStreams() {
+      return this.allStreams.filter(stream => {
+        if (this.searchQuery && !stream.lobbyName.toLowerCase().includes(this.searchQuery.toLowerCase())) {
+          return false;
+        }
+        
+        if (this.trackFilter !== 'all' && stream.trackName !== this.trackFilter) {
+          return false;
+        }
+        
+        if (this.maxLastActive !== 'all' && stream.lastActive > this.maxLastActive) {
+          return false;
+        }
+        
+        if (this.maxTimeSinceStart !== 'all' && stream.timeSinceStart > this.maxTimeSinceStart) {
+          return false;
+        }
+        
+        return true;
+      });
+    }
+  },
+  methods: {
+    getTimeAgo(minutes) {
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      return `${days}d ago`;
+    },
+    handleSubmit() {
+      if (this.passcode === '1234') {
+        window.location.href = 'https://google.com';
+      } else {
+        this.error = 'Incorrect passcode. Please try again.';
+        this.passcode = '';
+      }
+    },
+    closeModal() {
+      this.selectedStream = null;
+      this.passcode = '';
+      this.error = '';
+    }
+  },
+  watch: {
+    selectedStream(newVal) {
+      console.log('Selected stream changed:', newVal);
+    }
   }
+};
+</script>
+
+<style scoped>
+#app {
+  padding: 2rem;
+  background: linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%);
+  min-height: 100vh;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  color: #1976d2;
+  margin: 0 0 0.5rem 0;
+}
+
+.header p {
+  color: #666;
+  margin: 0;
+}
+
+.filters-section {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.search-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.search-input {
+  flex: 1;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.results-count {
+  color: #666;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.streams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.stream-card {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stream-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #1976d2;
+  margin: 0;
+}
+
+.last-active {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #666;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.info-row {
+  display: flex;
+  align-items: start;
+  gap: 0.5rem;
+}
+
+.info-icon {
+  color: #1976d2;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.info-text {
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.info-text.bold {
+  font-weight: 600;
+}
+
+.no-results {
+  text-align: center;
+  padding: 3rem;
+  color: #999;
+  font-size: 1.1rem;
+}
+
+.modal-info {
+  background: #e3f2fd;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+}
+
+.modal-info p {
+  margin: 0.25rem 0;
+}
+
+.modal-lobby {
+  font-weight: 600;
+  color: #1976d2;
+}
+
+.modal-track {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.hint-text {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.error-text {
+  color: #d32f2f;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
 }
 </style>
