@@ -179,128 +179,7 @@ export default {
       selectedStream: null,
       passcode: '',
       error: '',
-      allStreams: [
-        {
-          id: 1,
-          lobbyName: 'Thunder Road Racing',
-          trackName: 'Daytona International Speedway',
-          seriesName: 'NASCAR Cup Series',
-          sessionNumber: 3,
-          raceDate: 'November 15, 2025 14:30',
-          teamName: 'Hendrick Motorsports',
-          carName: 'Chevrolet Camaro ZL1',
-          lastActive: 5,
-          timeSinceStart: 45
-        },
-        {
-          id: 2,
-          lobbyName: 'European Endurance League',
-          trackName: 'Spa-Francorchamps',
-          seriesName: 'iRacing Endurance Series',
-          sessionNumber: 2,
-          raceDate: 'November 12, 2025 16:00',
-          teamName: 'Red Bull Racing',
-          carName: 'Porsche 911 GT3 R',
-          lastActive: 2,
-          timeSinceStart: 120
-        },
-        {
-          id: 3,
-          lobbyName: 'Glen Masters GT',
-          trackName: 'Watkins Glen',
-          seriesName: 'IMSA Series',
-          sessionNumber: 1,
-          raceDate: 'November 18, 2025 19:15',
-          teamName: 'Corvette Racing',
-          carName: 'Chevrolet Corvette C8.R',
-          lastActive: 15,
-          timeSinceStart: 30
-        },
-        {
-          id: 4,
-          lobbyName: 'Nordschleife Legends',
-          trackName: 'Nürburgring GP-Strecke',
-          seriesName: 'VRS GT Sprint Series',
-          sessionNumber: 4,
-          raceDate: 'November 20, 2025 13:45',
-          teamName: 'BMW Motorsport',
-          carName: 'BMW M4 GT3',
-          lastActive: 60,
-          timeSinceStart: 90
-        },
-        {
-          id: 5,
-          lobbyName: 'Indy 500 Qualifiers',
-          trackName: 'Indianapolis Motor Speedway',
-          seriesName: 'IndyCar Series',
-          sessionNumber: 2,
-          raceDate: 'November 22, 2025 17:00',
-          teamName: 'Team Penske',
-          carName: 'Dallara IR-18',
-          lastActive: 1,
-          timeSinceStart: 25
-        },
-        {
-          id: 6,
-          lobbyName: 'Le Mans Night Hawks',
-          trackName: 'Circuit de la Sarthe',
-          seriesName: 'Le Mans Series',
-          sessionNumber: 1,
-          raceDate: 'November 25, 2025 22:00',
-          teamName: 'Toyota Gazoo Racing',
-          carName: 'Toyota GR010 Hybrid',
-          lastActive: 3,
-          timeSinceStart: 180
-        },
-        {
-          id: 7,
-          lobbyName: 'American GT Challenge',
-          trackName: 'Road America',
-          seriesName: 'GT World Challenge',
-          sessionNumber: 3,
-          raceDate: 'November 28, 2025 15:30',
-          teamName: 'Mercedes-AMG',
-          carName: 'Mercedes-AMG GT3',
-          lastActive: 8,
-          timeSinceStart: 55
-        },
-        {
-          id: 8,
-          lobbyName: 'Sebring Sprint Masters',
-          trackName: 'Sebring International Raceway',
-          seriesName: 'iRacing Sports Car Championship',
-          sessionNumber: 2,
-          raceDate: 'December 1, 2025 18:45',
-          teamName: 'Acura Team Penske',
-          carName: 'Acura ARX-06',
-          lastActive: 30,
-          timeSinceStart: 40
-        },
-        {
-          id: 9,
-          lobbyName: 'Pacific Rim GT Series',
-          trackName: 'Suzuka Circuit',
-          seriesName: 'Super GT Series',
-          sessionNumber: 4,
-          raceDate: 'December 5, 2025 11:00',
-          teamName: 'Nissan Motorsports',
-          carName: 'Nissan GT-R NISMO GT3',
-          lastActive: 120,
-          timeSinceStart: 150
-        },
-        {
-          id: 10,
-          lobbyName: 'Mount Panorama Elites',
-          trackName: 'Mount Panorama',
-          seriesName: 'Bathurst 12 Hour',
-          sessionNumber: 1,
-          raceDate: 'December 8, 2025 09:30',
-          teamName: 'Audi Sport',
-          carName: 'Audi R8 LMS GT3',
-          lastActive: 10,
-          timeSinceStart: 65
-        }
-      ],
+      allStreams: [],
       lastActiveOptions: [
         { label: 'All', value: 'all' },
         { label: 'Last 5 min', value: 5 },
@@ -322,6 +201,9 @@ export default {
         { label: 'Today', value: 1440 }
       ]
     };
+  },
+  async created() {
+    await this.fetchStreams();
   },
   computed: {
     showModal() {
@@ -357,6 +239,38 @@ export default {
     }
   },
   methods: {
+    async fetchStreams() {
+      try {
+        const response = await fetch('https://rbp6s7lzj7shsh2oytpredade40lszob.lambda-url.eu-north-1.on.aws');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // Normalize data to ensure all required fields exist
+        const requiredFields = {
+          id: '',
+          lobbyName: '',
+          trackName: '',
+          seriesName: '',
+          sessionNumber: '',
+          raceDate: '',
+          teamName: '',
+          carName: '',
+          lastActive: 0,
+          timeSinceStart: 0
+        };
+        
+        this.allStreams = data.map(stream => ({
+          ...requiredFields,
+          ...stream
+        }));
+      } catch (error) {
+        console.error('Error fetching streams:', error);
+        this.allStreams = [];
+      }
+    },
     getTimeAgo(minutes) {
       if (minutes < 1) return 'Just now';
       if (minutes < 60) return `${minutes}m ago`;
