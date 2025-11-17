@@ -42,7 +42,7 @@ def get_data():
 
 def set_timestamp():
     with data_lock:
-        shared_data_json["session_info"]["timestamp"] = datetime.now(timezone.utc).timestamp()
+        shared_data_json["session_info"]["timestamp"] = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')
 
 def get_direction(angle=None):
     rad_to_deg = 57.296
