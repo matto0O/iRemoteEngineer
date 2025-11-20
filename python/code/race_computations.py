@@ -9,7 +9,7 @@ from kinesis_producer import KinesisProducer
 
 import schedule
 
-kinesis_producer = KinesisProducer(debug_mode=True)
+kinesis_producer = KinesisProducer()
 
 ir = IRSDK()
 state = State()
@@ -84,7 +84,7 @@ def get_direction(angle=None):
 
 def split_time_info():
     sectors = ir['SplitTimeInfo']['Sectors']
-    return {(sector['SectorNum'] + 1): sector["SectorStartPct"] * 100 for sector in sectors}
+    return {(sector['SectorNum'] + 1): round(sector["SectorStartPct"] * 100, 2) for sector in sectors}
 
 def used_fast_repair(lobby_name):
     current_fast_repairs = ir["PlayerFastRepairsUsed"]
