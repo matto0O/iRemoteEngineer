@@ -239,7 +239,7 @@ def check_if_in_pit(lobby_name):
             send_data(lobby_name, "event", event)
 
 def fuel_data(lobby_name):
-    send_data(lobby_name, "fuel", {"fuel_level": ir['FuelLevel']})
+    send_data(lobby_name, "fuel", {"fuel_level": round(ir['FuelLevel'], 2)})
 
 def lap_finished():
     new_lap = ir['Lap']
