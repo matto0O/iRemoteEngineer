@@ -90,14 +90,14 @@ def used_fast_repair(lobby_name):
     current_fast_repairs = ir["PlayerFastRepairsUsed"]
     if state.computation_helpers['fast_repairs_used'] != current_fast_repairs:
         state.computation_helpers['fast_repairs_used'] = current_fast_repairs
-        send_data(lobby_name, "fast_repair", current_fast_repairs)
+        send_data(lobby_name, "fast_repair", 1)
 
 def new_incidents(lobby_name):
     current_incidents = ir["PlayerCarMyIncidentCount"]
     inc_diff = current_incidents - state.computation_helpers['incidents']
     if inc_diff > 0:
         state.computation_helpers['incidents'] = current_incidents
-        send_data(lobby_name, "incidents", current_incidents)
+        send_data(lobby_name, "incidents", inc_diff)
         tyre_data(lobby_name)
 
 def get_speed():
