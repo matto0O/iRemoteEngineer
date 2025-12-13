@@ -24,7 +24,7 @@ class KinesisProducer:
 		self.kinesis_client = self.session.client('kinesis', region_name=region)
 
 	def send_record(self, data, partition_key):
-		print(f"Sending data to Kinesis stream {self.stream_name} with partition key {partition_key}")
+		# print(f"Sending data to Kinesis stream {self.stream_name} with partition key {partition_key}")
 		if self.debug_mode:
 			print(data)
 			return (200, "Debug mode")

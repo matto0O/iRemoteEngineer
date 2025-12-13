@@ -21,11 +21,16 @@ data_lock = Lock()
 def get_json_template():
     return kinesis_json.copy()
 
-def send_data(lobby_name, key, value):
+def send_data(lobby_name, key, value, **kwargs):
     to_send = get_json_template()
     to_send["type"] = key
     to_send["data"] = value
+    if kwargs:
+        for k, v in kwargs.items():
+            to_send[k] = v
     to_send["timestamp"] = get_timestamp()
+
+    print("\nSending data:", to_send)
 
     kinesis_producer.send_record(to_send, lobby_name)
 
@@ -38,6 +43,7 @@ def schedule_job(func, interval, lobby_name):
 
 def schedule_data_ingestion(lobby_name, team_name):
     set_constants(lobby_name, team_name)
+    get_session_info(lobby_name)
 
     schedule_job(post_lap_invocations, 1, lobby_name)
     schedule_job(relative, 5, lobby_name)
@@ -130,7 +136,7 @@ def weather_info(lobby_name):
         "declared_wet": declared_wet,
     }
 
-    send_data(lobby_name, "weather_data", weather_data)
+    send_data(lobby_name, "weather", weather_data)
 
 def tyre_data(lobby_name):
     def get_tyre_data(prefix):
@@ -183,20 +189,12 @@ def relative(lobby_name):
     for car, position, dist_pct, in_pit, lap, est_time, class_pos, gap_leader, last_lap in zip(
             all_cars, their_position, their_distance_pct, them_pit_road,
             their_lap, their_est_time, their_class_position, their_gap_leader, their_last_lap):
-
-        # Format last lap time efficiently
-        if last_lap > 0:
-            minutes = int(last_lap / 60)
-            seconds = int(last_lap % 60)
-            milliseconds = int((last_lap % 1) * 1000)
-            formatted_last_lap = f"{minutes}:{seconds:02d}.{milliseconds:03d}"
-        else:
-            formatted_last_lap = "--:--:---"
             
         car_data.append({
             "user_name": car.user_name,
             "team_name": car.team_name,
             "class_id": car.class_id,
+            "car_name": car.model_short,
             "car_model_id": car.car_model_id,
             "car_number": car.car_number,
             "car_class_position": class_pos,
@@ -205,16 +203,39 @@ def relative(lobby_name):
             "car_est_time": round(est_time, 3),
             "distance_pct": round(dist_pct, 3),
             "in_pit": in_pit,
-            "lap": lap,
-            "last_lap": formatted_last_lap,
+            "lap": lap
         })
 
-    send_data(lobby_name, "cars", car_data)
+    changed_data = {}
+    # Initial full update
+    if state.computation_helpers['cars'] == {}:
+        for car in car_data:
+            car_number = car['car_number']
+            state.computation_helpers['cars'][car_number] = car
+        send_data(lobby_name, "cars", state.computation_helpers['cars'], full_update=True)
+
+    # Compare with previous state and send only changed fields
+    else:
+        for car in car_data:
+            car_number = car['car_number']
+            modifiable_car = car.copy()
+            if car['car_number'] in state.computation_helpers['cars']:
+                car_info = state.computation_helpers['cars'][car_number]
+
+                for key, value in car.items():
+                    if car_info.get(key, None) == value:
+                        del modifiable_car[key]
+            changed_data[car_number] = modifiable_car
+            state.computation_helpers['cars'][car_number] = modifiable_car
+
+        if changed_data:
+            send_data(lobby_name, "cars", changed_data)
+
     state.session_info["team_name"] = all_cars[my_car_idx].team_name
     state.session_info["player_car_number"] = all_cars[my_car_idx].car_number
-    state.session_info["car_name"] = all_cars[my_car_idx].car_model_id
+    state.session_info["car_name"] = all_cars[my_car_idx].model_short
 
-    return car_data
+    return changed_data
 
 def check_if_in_pit(lobby_name):
     in_pit = ir['OnPitRoad']
@@ -222,21 +243,13 @@ def check_if_in_pit(lobby_name):
         state.computation_helpers['in_pit'] = in_pit
 
         if in_pit:
-            event = {
-                        "type": "pit_stop",
-                        "description": "Entered the pit lane"
-                    }
-            send_data(lobby_name, "event", event)
+            send_data(lobby_name, "pit_stop", "Entered the pit lane")
         else:
             state.computation_helpers['last_fuel_level'] = ir['FuelLevel']
             state.computation_helpers['last_lap'] = ir['Lap']
             used_fast_repair(lobby_name)
-
-            event = {
-                        "type": "pit_stop",
-                        "description": "Left the pit lane"
-                    }
-            send_data(lobby_name, "event", event)
+            
+            send_data(lobby_name, "pit_stop", "Left the pit lane")
 
 def fuel_data(lobby_name):
     send_data(lobby_name, "fuel", {"fuel_level": round(ir['FuelLevel'], 2)})
