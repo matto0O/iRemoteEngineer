@@ -1,134 +1,319 @@
 <template>
-    <div class="fuel-data-container">
-      <h3>Fuel Analysis</h3>
-      <DataTable :value="tableData" stripedRows responsiveLayout="scroll">
-        <Column field="label" header="Metric"></Column>
-        <Column field="value" header="Value">
-          <template #body="slotProps">
-            <span :class="{ 'fuel-critical': isCritical(slotProps.data.key) }">
-              {{ formatValue(slotProps.data.value, slotProps.data.key) }}
-            </span>
-          </template>
-        </Column>
-      </DataTable>
-    </div>
-  </template>
-  
-  <script setup>
-  import { ref, computed } from 'vue';
-  import DataTable from 'primevue/datatable';
-  import Column from 'primevue/column';
-  import useRaceData from '@/composables/useRaceData';
+  <div class="fuel-data-container">
+    <h3>Fuel Analysis</h3>
+    
+    <!-- Always visible summary data -->
+    <DataTable :value="summaryData" stripedRows responsiveLayout="scroll" class="summary-table">
+      <Column field="label" header="Metric"></Column>
+      <Column field="value" header="Value">
+        <template #body="slotProps">
+          <span :class="{ 'fuel-critical': isCritical(slotProps.data.key) }">
+            {{ formatValue(slotProps.data.value, slotProps.data.key) }}
+          </span>
+        </template>
+      </Column>
+    </DataTable>
 
-  const props = defineProps({
-    socket: {
-      type: Object,
-      required: true
-    }
-  })
+    <!-- Toggle buttons -->
+    <div class="toggle-container">
+      <button 
+        :class="['toggle-btn', { active: viewMode === 'average' }]"
+        @click="viewMode = 'average'"
+      >
+        Average Consumption
+      </button>
+      <button 
+        :class="['toggle-btn', { active: viewMode === 'last' }]"
+        @click="viewMode = 'last'"
+      >
+        Last Lap Consumption
+      </button>
+    </div>
+
+    <!-- Lap-fuel consumption pairs table -->
+    <DataTable :value="lapFuelPairs" stripedRows responsiveLayout="scroll" class="laps-table">
+      <Column header="Laps">
+        <template #body="slotProps">
+          <div class="laps-cell">
+            <span>{{ slotProps.data.laps }}</span>
+            <span class="tooltip-wrapper">
+              <span class="tooltip-icon">ⓘ</span>
+              <span class="tooltip-text">{{ slotProps.data.tooltip }}</span>
+            </span>
+          </div>
+        </template>
+      </Column>
+      <Column header="Target Fuel Consumption">
+        <template #body="slotProps">
+          <span>{{ formatFuelValue(slotProps.data.target) }}</span>
+        </template>
+      </Column>
+    </DataTable>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import useRaceData from '@/composables/useRaceData';
+
+const props = defineProps({
+  socket: {
+    type: Object,
+    required: true
+  }
+})
+
+const viewMode = ref('average'); // 'average' or 'last'
 
 // Get shared race data from composable
 const { data } = useRaceData(props.socket)
 
 // Watch race data for fuel analysis information
 const fuelData = computed(() => {
-    return data.value?.fuel_analysis || {
-        fuel_left: -1.0,
-        average_consumption: -1.0,
-        target_laps_avg: -1,
-        target_laps_avg_consumption: -1.0,
-        ollavg: -1,
-        ollavg_consumption_target: -1.0,
-        omlavg: -1,
-        omlavg_consumption_target: -1.0,
-        last_lap_consumption: -1.0,
-        target_laps_last: -1,
-        target_laps_last_consumption: -1.0
+    return data.value?.fuel || {
+        current_fuel_level: -1.0,
+        burn_history: [],
+        average_burn: -1.0,
+
+        avg_laps_left_estimate: -1.0,
+        avg_target_laps: -1.0,
+        avg_floor_laps: -1.0,
+        avg_floor_lap_target: -1.0,
+        avg_ceil_laps: -1.0,
+        avg_ceil_lap_target: -1.0,
+        avg_one_lap_less_left: -1,
+        avg_one_lap_less_target: -1.0,
+        avg_one_lap_more_left: -1,
+        avg_one_lap_more_target: -1.0,
+
+        last_laps_left_estimate: -1.0,
+        last_target_laps: -1.0,
+        last_floor_laps: -1.0,
+        last_floor_lap_target: -1.0,
+        last_ceil_laps: -1.0,
+        last_ceil_lap_target: -1.0,
+        last_one_lap_less_left: -1,
+        last_one_lap_less_target: -1.0,
+        last_one_lap_more_left: -1,
+        last_one_lap_more_target: -1.0,
     };
 });
 
-// Updated tableData to use the computed fuelData
-const tableData = computed(() => {
-    return Object.entries(fuelData.value).map(([key, value]) => ({
-        key,
-        label: labels[key] || key,
-        value
-    }));
+// Summary data (always visible)
+const summaryData = computed(() => {
+  return [
+    {
+      key: 'current_fuel_level',
+      label: 'Fuel remaining',
+      value: fuelData.value.current_fuel_level
+    },
+    {
+      key: 'burn_history',
+      label: "Last laps' fuel consumption history",
+      value: fuelData.value.burn_history
+    },
+    {
+      key: 'average_burn',
+      label: 'Recent average fuel consumption',
+      value: fuelData.value.average_burn
+    }
+  ];
 });
 
-// Update isCritical to use fuelData
-const isCritical = (key) => {
-    // Example logic - fuel is critical if less than 10 units
-    if (key === 'fuel_left' && fuelData.value.fuel_left < fuelData.value.average_consumption) {
-        return true;
+// Lap-fuel pairs based on selected view mode
+const lapFuelPairs = computed(() => {
+  const prefix = viewMode.value === 'average' ? 'avg' : 'last';
+  const consumptionType = viewMode.value === 'average' 
+    ? 'average fuel consumption' 
+    : "last lap's fuel consumption";
+
+  const floorLaps = fuelData.value[`${prefix}_floor_laps`];
+  const ceilLaps = fuelData.value[`${prefix}_ceil_laps`];
+  const oneLapLess = fuelData.value[`${prefix}_one_lap_less_left`];
+  const oneLapMore = fuelData.value[`${prefix}_one_lap_more_left`];
+
+  return [
+    {
+      laps: `${fuelData.value[`${prefix}_laps_left_estimate`].toFixed(2)}`,
+      target: fuelData.value.current_fuel_level,
+      tooltip: `Exact laps left for ${consumptionType}`
+    },
+    {
+      laps: floorLaps,
+      target: fuelData.value[`${prefix}_floor_lap_target`],
+      tooltip: `Fuel consumption target for ${floorLaps} whole laps`
+    },
+    {
+      laps: ceilLaps,
+      target: fuelData.value[`${prefix}_ceil_lap_target`],
+      tooltip: `Fuel consumption target for ${ceilLaps} laps (rounded up)`
+    },
+    {
+      laps: oneLapLess,
+      target: fuelData.value[`${prefix}_one_lap_less_target`],
+      tooltip: `Fuel consumption target for ${oneLapLess} laps (one less than whole laps)`
+    },
+    {
+      laps: oneLapMore,
+      target: fuelData.value[`${prefix}_one_lap_more_target`],
+      tooltip: `Fuel consumption target for ${oneLapMore} laps (one more than rounded up)`
     }
-    // Lap count is critical if less than 3
-    if (['target_laps_avg', 'target_laps_last', 'ollavg', 'omlavg'].includes(key) && 
-            fuelData.value[key] < 3) {
+  ];
+});
+
+const isCritical = (key) => {
+    // Fuel is critical if less than average burn
+    if (key === 'current_fuel_level' && fuelData.value.current_fuel_level < fuelData.value.average_burn) {
         return true;
     }
     return false;
 };
-  
-  // Map of keys to human-readable labels
-  const labels = {
-    fuel_left: "Fuel Remaining",
-    average_consumption: "Avg Consumption",
-    target_laps_avg: "Target Laps by Avg",
-    target_laps_avg_consumption: "Target Consumption by Avg",
-    ollavg: "Target laps -1 by Avg",
-    ollavg_consumption_target: "Consumption for target laps -1 by Avg",
-    omlavg: "Target laps +1 by Avg",
-    omlavg_consumption_target: "Consumption for target laps +1 by Avg",
-    last_lap_consumption: "Last Lap Consumption",
-    target_laps_last: "Target Laps by Last",
-    target_laps_last_consumption: "Target Consumption by Last"
-  };
-  
-  // Format numeric values with 2 decimal places
-  const formatValue = (value, key) => {
-    if (['target_laps_avg', 'target_laps_last', 'ollavg', 'omlavg'].includes(key)) {
-      return `${parseInt(value)} laps`;
-    }
-    return typeof value === 'number' 
-      ? `${value.toFixed(2)}L` 
-      : value;
-  };
-  </script>
-  
-  <style scoped>
-  .fuel-data-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 1rem;
-    border-radius: 8px;
-    background-color: #f8f8f8;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+// Format numeric values with 2 decimal places
+const formatValue = (value, key) => {
+  if (key === 'burn_history') {
+    return Array.isArray(value) ? value.map(v => v.toFixed(2)).join(', ') + 'L' : value;
   }
-  
-  h3 {
-    margin-top: 0;
-    color: #333;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  
-  .fuel-critical {
-    color: #ff3333;
-    font-weight: bold;
-  }
-  
-  :deep(.p-datatable) {
-    font-size: 0.9rem;
-  }
-  
-  :deep(.p-datatable .p-datatable-thead > tr > th) {
-    background-color: #f1f1f1;
-    padding: 0.5rem 0.75rem;
-  }
-  
-  :deep(.p-datatable .p-datatable-tbody > tr > td) {
-    padding: 0.5rem 0.75rem;
-  }
-  </style>
+  return typeof value === 'number' 
+    ? `${value.toFixed(2)}L` 
+    : value;
+};
+
+const formatFuelValue = (value) => {
+  return typeof value === 'number' ? `${value.toFixed(2)}L` : value;
+};
+</script>
+
+<style scoped>
+.fuel-data-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #f8f8f8;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.summary-table {
+  margin-bottom: 1.5rem;
+}
+
+.toggle-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  justify-content: center;
+}
+
+.toggle-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background-color: white;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.toggle-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.toggle-btn.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.laps-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-icon {
+  color: #007bff;
+  cursor: help;
+  font-size: 1rem;
+  margin-left: 0.25rem;
+  display: inline-block;
+  font-weight: bold;
+}
+
+.tooltip-icon:hover {
+  color: #0056b3;
+  transform: scale(1.1);
+}
+
+.tooltip-text {
+  visibility: hidden;
+  width: 250px;
+  background-color: #333;
+  color: #fff;
+  text-align: left;
+  border-radius: 6px;
+  padding: 8px 12px;
+  position: absolute;
+  z-index: 1000;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 10px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 0.85rem;
+  font-weight: normal;
+  white-space: normal;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.tooltip-text::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  margin-top: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent #333 transparent transparent;
+}
+
+.tooltip-wrapper:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+.fuel-critical {
+  color: #ff3333;
+  font-weight: bold;
+}
+
+:deep(.p-datatable) {
+  font-size: 0.9rem;
+}
+
+:deep(.p-datatable .p-datatable-thead > tr > th) {
+  background-color: #f1f1f1;
+  padding: 0.5rem 0.75rem;
+}
+
+:deep(.p-datatable .p-datatable-tbody > tr > td) {
+  padding: 0.5rem 0.75rem;
+}
+</style>

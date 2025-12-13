@@ -6,27 +6,47 @@
       No events recorded
     </div>
     
-    <div v-else class="events-table-container">
-      <table class="events-table">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Type</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(event, index) in sortedEvents" :key="index" :class="`event-type-${event.type}`">
-            <td class="event-time">{{ formatTime(event.time) }}</td>
-            <td class="event-type">
-              <span class="event-badge" :class="`event-badge-${event.type}`">
-                {{ formatEventType(event.type) }}
-              </span>
-            </td>
-            <td class="event-description">{{ event.description }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-else>
+      <div class="filters-container">
+        <button 
+          v-for="filter in filterOptions" 
+          :key="filter.value"
+          @click="selectedFilter = filter.value"
+          :class="['filter-btn', { active: selectedFilter === filter.value }]"
+        >
+          {{ filter.label }}
+          <span class="filter-count" v-if="filter.value !== 'all'">
+            {{ getEventCountByType(filter.value) }}
+          </span>
+        </button>
+      </div>
+      
+      <div class="events-table-container">
+        <table class="events-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Type</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(event, index) in filteredEvents" :key="index" :class="`event-type-${event.type}`">
+              <td class="event-time">{{ formatTime(event.time) }}</td>
+              <td class="event-type">
+                <span class="event-badge" :class="`event-badge-${event.type}`">
+                  {{ formatEventType(event.type) }}
+                </span>
+              </td>
+              <td class="event-description">{{ event.description }}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div v-if="filteredEvents.length === 0" class="no-filtered-events">
+          No {{ selectedFilter }} events found
+        </div>
+      </div>
     </div>
 
     <div class="counters-container">
@@ -47,7 +67,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import useRaceData from '@/composables/useRaceData';
 
 const props = defineProps({
@@ -60,15 +80,40 @@ const props = defineProps({
 // Get shared race data from composable
 const { data } = useRaceData(props.socket);
 
+// Selected filter state
+const selectedFilter = ref('all');
+
+// Filter options
+const filterOptions = [
+  { value: 'all', label: 'All Events' },
+  { value: 'incident', label: 'Incidents' },
+  { value: 'pit_stop', label: 'Pit Stops' },
+  { value: 'weather', label: 'Weather' },
+  { value: 'commands', label: 'Commands' }
+];
+
 // Get events from race data
 const events = computed(() => {
-  return data.value?.events || [];
+  return data.value?.event || [];
 });
 
 // Sort events to show newest at the top
 const sortedEvents = computed(() => {
   return [...events.value].reverse();
 });
+
+// Filter events based on selected filter
+const filteredEvents = computed(() => {
+  if (selectedFilter.value === 'all') {
+    return sortedEvents.value;
+  }
+  return sortedEvents.value.filter(event => event.type === selectedFilter.value);
+});
+
+// Get count of events by type
+const getEventCountByType = (type) => {
+  return events.value.filter(event => event.type === type).length;
+};
 
 // Get total incidents count
 const totalIncidents = computed(() => {
@@ -130,12 +175,58 @@ h3 {
   font-style: italic;
 }
 
+.filters-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  border: 2px solid #ddd;
+  background-color: white;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.filter-btn:hover {
+  border-color: #999;
+  background-color: #f5f5f5;
+}
+
+.filter-btn.active {
+  background-color: #333;
+  color: white;
+  border-color: #333;
+}
+
+.filter-count {
+  background-color: rgba(0, 0, 0, 0.15);
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  min-width: 20px;
+  text-align: center;
+}
+
+.filter-btn.active .filter-count {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
 .events-table-container {
   max-height: 400px;
   overflow-y: auto;
   margin-bottom: 1rem;
   border: 1px solid #eee;
   border-radius: 4px;
+  position: relative;
 }
 
 .events-table {
@@ -219,6 +310,13 @@ h3 {
 
 .event-type-pit_stop {
   background-color: rgba(34, 139, 34, 0.05);
+}
+
+.no-filtered-events {
+  text-align: center;
+  color: #999;
+  padding: 2rem;
+  font-style: italic;
 }
 
 .counters-container {

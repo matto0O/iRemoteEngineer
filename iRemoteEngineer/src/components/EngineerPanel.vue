@@ -23,13 +23,17 @@ import useWebSocketConnection from '../composables/createSocket.js';
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
-  socketAddress: {
+  lobby_name: {
+    type: String,
+    required: true
+  },
+  team_name: {
     type: String,
     required: true
   }
 })
 
-const { socket, isConnected, connect } = useWebSocketConnection(props.socketAddress);
+const { socket, isConnected, connect } = useWebSocketConnection(props.lobby_name, props.team_name);
 
 const safeSocket = computed(() => isConnected.value ? socket.value : null);
 

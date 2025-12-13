@@ -33,7 +33,7 @@
   
   // Watch race data for weather information
   const weatherData = computed(() => {
-    return data.value?.weather || {
+    return data.value?.weather_data || {
       air_temp: 0,
       track_temp: 0,
       wind_speed: 0,
