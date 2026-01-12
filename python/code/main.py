@@ -1,27 +1,28 @@
-from time import sleep
+from gui.gui_main import IracingDataGUI
+import tkinter as tk
+# from irsdk import IRSDK
 
-from race_computations import schedule_data_ingestion, run_jobs, ir, state
+if __name__=="__main__":
+    root = tk.Tk()
+    gui = IracingDataGUI(root)
+    root.mainloop()
 
-def check_iracing(test_file=None):
-    if state.ir_connected and not (ir.is_initialized and ir.is_connected):
-        state.ir_connected = False
-        state.last_car_setup_tick = -1
-        ir.shutdown()
-        return False
-    elif state.ir_connected and (ir.is_initialized and ir.is_connected):
-        return True
-    elif not state.ir_connected and ir.startup(test_file=test_file) and ir.is_initialized and ir.is_connected:
-        state.ir_connected = True
-    return False
+    # irsdk_instance = IRSDK()
+    # a = None
+    # # a = r"python/newdataset/data100.bin"
+    # irsdk_instance.startup(a)
+    # print(irsdk_instance['LapLastLapTime'])
+    # print(irsdk_instance["IsOnTrack"], irsdk_instance["IsOnTrackCar"])
+    # print(irsdk_instance["PlayerCarTowTime"], irsdk_instance["FastRepairAvailable"])
 
-if __name__ == "__main__":
-    while not check_iracing():
-        print("Waiting for iRacing...")
-        sleep(1)
-    state.session_info["lobby_name"] = "asa"
-    partition_key = state.session_info["lobby_name"]
+    # 'EventType': 'Practice'
+    # 'SeriesID': 591, 'SeasonID': 5932, 'SessionID': 295641631, 'SubSessionID': 82194959
 
-    schedule_data_ingestion(lobby_name=partition_key, team_name="name")
+    # irsdk_instance["SessionInfo"]["SessionName"] - QUALIFY
 
-    while True:
-        run_jobs(interval=0.5)
+
+    # ir["SessionInfo"]["SessionType"] / ir["SessionInfo"]["SessionName"] - typ sesji
+    # ir["IsOnTrack"] - czy w aucie?
+    # ir["PlayerCarTowTime"] - car is being towed if >0
+    # ir["FastRepairAvailable"]
+    

@@ -1,10 +1,11 @@
 import json
 import boto3
 from boto3.session import Session
+import os
 
 class KinesisProducer:
-	def __init__(self, stream_name="iRacingEngineer", region="eu-north-1", 
-			   		identity_pool_id="eu-north-1:c475f3dd-658f-4d5c-80b0-8ea10b908e09", debug_mode=False):
+	def __init__(self, stream_name="iRemoteEngineer", region="eu-north-1", 
+			   		identity_pool_id=os.getenv("IDENTITY_POOL_ID"), debug_mode=False):
 		self.stream_name = stream_name
 		self.debug_mode = debug_mode
 
@@ -28,7 +29,7 @@ class KinesisProducer:
 		if self.debug_mode:
 			print(data)
 			return (200, "Debug mode")
-		
+
 		response = self.kinesis_client.put_record(
 			StreamName=self.stream_name,
 			Data=json.dumps(data),
