@@ -3,3 +3,15 @@
 build
 dist
 main.spec
+*/certificates*
+*/newdataset*
+data.py
+.env
+*.spec
+test*.py
+todo
+car_decoding_data.py
+diagnose_iot_policy.py
+script.py
+2026s1.json
+.claude/settings.local.json
