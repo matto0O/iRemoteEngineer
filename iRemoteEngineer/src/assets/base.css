@@ -21,7 +21,7 @@
   --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
 }
 
-/* semantic color variables for this project */
+/* semantic color variables for this project - Light Mode */
 :root {
   --color-background: var(--vt-c-white);
   --color-background-soft: var(--vt-c-white-soft);
@@ -32,22 +32,101 @@
 
   --color-heading: var(--vt-c-text-light-1);
   --color-text: var(--vt-c-text-light-1);
+  --color-text-secondary: rgba(60, 60, 60, 0.66);
+
+  /* App-specific light mode colors */
+  --app-bg-gradient-start: #e3f2fd;
+  --app-bg-gradient-end: #f5f5f5;
+  --card-bg: #ffffff;
+  --card-shadow: rgba(0, 0, 0, 0.1);
+  --card-shadow-hover: rgba(0, 0, 0, 0.15);
+  --primary-blue: #1976d2;
+  --primary-blue-light: #e3f2fd;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --border-color: #e0e0e0;
+  --debug-bg: #f0f0f0;
+  --debug-border: #cccccc;
+  --mock-banner-bg: #ffc107;
+  --mock-banner-text: #000000;
+
+  /* Component-specific light mode colors */
+  --filter-content-bg: #f8f9fa;
+  --filter-border: #667eea;
+  --table-bg: #ffffff;
+  --table-hover-bg: #f8f9fa;
+  --table-header-bg-start: #f8f9fa;
+  --table-header-bg-end: #e9ecef;
+  --table-header-text: #2c3e50;
+  --table-border: #dee2e6;
+  --table-row-border: #f1f3f5;
+  --highlighted-row-start: #fff8e1;
+  --highlighted-row-end: #fff3cd;
+  --player-row-start: #e3f2fd;
+  --player-row-end: #bbdefb;
+  --time-cell-text: #495057;
+  --info-card-bg: #fafafa;
+  --info-card-border: #cccccc;
+  --button-secondary-bg: #f0f0f0;
+  --button-secondary-hover: #e0e0e0;
+  --button-active-bg: #3498db;
+  --close-btn-color: #666666;
 
   --section-gap: 160px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: var(--vt-c-black);
-    --color-background-soft: var(--vt-c-black-soft);
-    --color-background-mute: var(--vt-c-black-mute);
+/* Dark Mode Variables */
+.dark-mode {
+  --color-background: #0d0d0d;
+  --color-background-soft: #1a1a1a;
+  --color-background-mute: #1e1e1e;
 
-    --color-border: var(--vt-c-divider-dark-2);
-    --color-border-hover: var(--vt-c-divider-dark-1);
+  --color-border: rgba(84, 84, 84, 0.48);
+  --color-border-hover: rgba(84, 84, 84, 0.65);
 
-    --color-heading: var(--vt-c-text-dark-1);
-    --color-text: var(--vt-c-text-dark-2);
-  }
+  --color-heading: #e8e8e8;
+  --color-text: #d0d0d0;
+  --color-text-secondary: rgba(235, 235, 235, 0.64);
+
+  /* App-specific dark mode colors */
+  --app-bg-gradient-start: #0d0d0d;
+  --app-bg-gradient-end: #050505;
+  --card-bg: #1a1a1a;
+  --card-shadow: rgba(0, 0, 0, 0.5);
+  --card-shadow-hover: rgba(0, 0, 0, 0.7);
+  --primary-blue: #5fa3d0;
+  --primary-blue-light: #1e3a5f;
+  --text-primary: #e8e8e8;
+  --text-secondary: #b8b8b8;
+  --text-muted: #909090;
+  --border-color: #333333;
+  --debug-bg: #1a1a1a;
+  --debug-border: #333333;
+  --mock-banner-bg: #f59e0b;
+  --mock-banner-text: #000000;
+
+  /* Component-specific dark mode colors */
+  --filter-content-bg: #1a1a1a;
+  --filter-border: #667eea;
+  --table-bg: #141414;
+  --table-hover-bg: #1e1e1e;
+  --table-header-bg-start: #1a1a1a;
+  --table-header-bg-end: #141414;
+  --table-header-text: #e8e8e8;
+  --table-border: #2a2a2a;
+  --table-row-border: #1e1e1e;
+  --highlighted-row-start: #2a2410;
+  --highlighted-row-end: #3a3018;
+  --player-row-start: #142840;
+  --player-row-end: #1a3550;
+  --time-cell-text: #c0c0c0;
+  --info-card-bg: #1a1a1a;
+  --info-card-border: #333333;
+  --button-secondary-bg: #2a2a2a;
+  --button-secondary-hover: #353535;
+  --button-active-bg: #3498db;
+  --close-btn-color: #b8b8b8;
 }
 
 *,
@@ -83,4 +162,156 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Dark mode PrimeVue component overrides */
+.dark-mode .p-button {
+  background: var(--button-secondary-bg);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.dark-mode .p-button:not(:disabled):hover {
+  background: var(--button-secondary-hover);
+  border-color: var(--border-color);
+}
+
+.dark-mode .p-button.p-button-primary {
+  background: #5a6fd0;
+  border-color: #5a6fd0;
+  color: #ffffff;
+}
+
+.dark-mode .p-button.p-button-primary:not(:disabled):hover {
+  background: #6b7dd8;
+  border-color: #6b7dd8;
+}
+
+.dark-mode .p-button.p-button-info {
+  background: #4a7da0;
+  border-color: #4a7da0;
+  color: #ffffff;
+}
+
+.dark-mode .p-button.p-button-info:not(:disabled):hover {
+  background: #5a8db0;
+  border-color: #5a8db0;
+}
+
+.dark-mode .p-button-outlined {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-mode .p-button-outlined:not(:disabled):hover {
+  background: var(--button-secondary-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.dark-mode .p-buttongroup .p-button {
+  border-color: var(--border-color);
+}
+
+.dark-mode .p-datatable {
+  background: var(--table-bg);
+}
+
+.dark-mode .p-datatable .p-datatable-header {
+  background: var(--table-header-bg-start);
+  border-color: var(--table-border);
+  color: var(--text-primary);
+}
+
+.dark-mode .p-datatable .p-datatable-thead > tr > th {
+  background: var(--table-header-bg-start);
+  border-color: var(--table-border);
+  color: var(--table-header-text);
+}
+
+.dark-mode .p-datatable .p-datatable-tbody > tr {
+  background: var(--table-bg);
+  color: var(--text-primary);
+}
+
+.dark-mode .p-datatable .p-datatable-tbody > tr > td {
+  border-color: var(--table-row-border);
+  color: var(--text-primary);
+}
+
+.dark-mode .p-datatable .p-datatable-tbody > tr.best-lap-row,
+.dark-mode .p-datatable .p-datatable-tbody > tr.personal-best-row {
+  color: #000000 !important;
+}
+
+.dark-mode .p-datatable .p-datatable-tbody > tr.best-lap-row > td,
+.dark-mode .p-datatable .p-datatable-tbody > tr.personal-best-row > td {
+  color: #000000 !important;
+}
+
+.dark-mode .p-datatable .p-datatable-tbody > tr.best-lap-row > td > div,
+.dark-mode .p-datatable .p-datatable-tbody > tr.personal-best-row > td > div {
+  color: #000000 !important;
+}
+
+.dark-mode .p-datatable .p-datatable-tbody > tr:hover {
+  background: var(--table-hover-bg) !important;
+}
+
+.dark-mode .p-datatable-striped .p-datatable-tbody > tr:nth-child(even) {
+  background: var(--table-hover-bg);
+}
+
+.dark-mode .p-card {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.dark-mode .p-card .p-card-body {
+  color: var(--text-primary);
+}
+
+.dark-mode .p-card .p-card-content {
+  color: var(--text-primary);
+}
+
+.dark-mode .p-card .p-card-title {
+  color: var(--text-primary);
+}
+
+.dark-mode .p-card .p-card-subtitle {
+  color: var(--text-secondary);
+}
+
+/* Additional dark mode improvements */
+.dark-mode input,
+.dark-mode textarea,
+.dark-mode select {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6 {
+  color: var(--color-heading);
+}
+
+.dark-mode a {
+  color: var(--primary-blue);
+}
+
+.dark-mode a:hover {
+  color: #7bb8e0;
 }

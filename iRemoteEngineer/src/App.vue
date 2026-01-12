@@ -1,151 +1,188 @@
 <template>
-  <div id="app">
-    <div class="header">
-      <h1>iRacing Data Streams</h1>
-      <p>Select a stream to access live telemetry data</p>
+  <div class="app-container">
+    <!-- Mock Mode Toggle -->
+    <div class="mock-mode-banner" v-if="useMockMode">
+      <span>🔧 MOCK MODE - Using simulated data</span>
     </div>
-    
-    <div class="filters-section">
-      <div class="search-bar">
-        <span class="p-input-icon-left search-input">
-          <i class="pi pi-search"></i>
-          <InputText 
-            v-model="searchQuery" 
-            placeholder="Search lobby names..." 
-            style="width: 100%"
+
+    <div v-if="!selectedLobbyName" class="landing-container">
+      <!-- Compact header -->
+      <div class="compact-header">
+        <h1>iRacing Data Streams</h1>
+        <div class="controls">
+          <Button
+            :icon="isDarkMode ? 'pi pi-sun' : 'pi pi-moon'"
+            @click="toggleDarkMode"
+            :label="isDarkMode ? 'Light' : 'Dark'"
+            severity="secondary"
+            size="small"
+            class="dark-mode-toggle"
           />
-        </span>
-        <Button 
-          :label="showFilters ? 'Hide Filters' : 'Show Filters'" 
-          icon="pi pi-filter"
-          :severity="showFilters ? 'primary' : 'secondary'"
-          @click="showFilters = !showFilters"
-        />
+          <label class="mock-toggle">
+            <input type="checkbox" v-model="useMockMode" />
+            Use Mock Data
+          </label>
+          <div class="results-count">
+            Showing {{ filteredStreams.length }} of {{ allStreams.length }} streams
+          </div>
+        </div>
       </div>
       
-      <div v-if="showFilters" class="filter-grid">
-        <div class="filter-group">
-          <label class="filter-label">Track</label>
-          <Dropdown 
-            v-model="trackFilter" 
-            :options="trackOptions" 
-            optionLabel="label" 
-            optionValue="value"
-            placeholder="Select a track"
+      <!-- Search and filters in a more compact layout -->
+      <div class="search-filters-compact">
+        <div class="search-bar">
+          <span class="p-input-icon-left search-input">
+            <i class="pi pi-search"></i>
+            <InputText 
+              v-model="searchQuery" 
+              placeholder="Search lobby names..." 
+              style="width: 100%"
+            />
+          </span>
+          <Button 
+            :label="showFilters ? 'Hide' : 'Filters'" 
+            icon="pi pi-filter"
+            :severity="showFilters ? 'primary' : 'secondary'"
+            @click="showFilters = !showFilters"
+            size="small"
           />
         </div>
         
-        <div class="filter-group">
-          <label class="filter-label">Max Last Active</label>
-          <div v-for="option in last_activeOptions" :key="option.value" class="radio-option">
-            <RadioButton 
-              v-model="maxLastActive" 
-              :inputId="'active-' + option.value" 
-              :value="option.value"
+        <div v-if="showFilters" class="filter-grid">
+          <div class="filter-group">
+            <label class="filter-label">Track</label>
+            <Dropdown 
+              v-model="trackFilter" 
+              :options="trackOptions" 
+              optionLabel="label" 
+              optionValue="value"
+              placeholder="Select a track"
             />
-            <label :for="'active-' + option.value">{{ option.label }}</label>
           </div>
-        </div>
-        
-        <div class="filter-group">
-          <label class="filter-label">Max Time Since Start</label>
-          <div v-for="option in time_since_startOptions" :key="option.value" class="radio-option">
-            <RadioButton 
-              v-model="maxTimeSinceStart" 
-              :inputId="'start-' + option.value" 
-              :value="option.value"
-            />
-            <label :for="'start-' + option.value">{{ option.label }}</label>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="results-count">
-      Showing {{ filteredStreams.length }} of {{ allStreams.length }} streams
-    </div>
-    
-    <div class="streams-grid">
-      <Card 
-        v-for="stream in filteredStreams" 
-        :key="stream.id" 
-        class="stream-card"
-        @click="selectedStream = stream"
-      >
-        <template #content>
-          <div class="card-header">
-            <h3 class="card-title">{{ stream.lobby_name }}</h3>
-            <div class="last-active">
-              <i class="pi pi-clock"></i>
-              <span>{{ getTimeAgo(stream.last_active) }}</span>
+          
+          <div class="filter-group">
+            <label class="filter-label">Max Last Active</label>
+            <div v-for="option in last_activeOptions" :key="option.value" class="radio-option">
+              <RadioButton 
+                v-model="maxLastActive" 
+                :inputId="'active-' + option.value" 
+                :value="option.value"
+              />
+              <label :for="'active-' + option.value">{{ option.label }}</label>
             </div>
           </div>
           
-          <div class="card-info">
-            <div class="info-row">
-              <i class="pi pi-map-marker info-icon"></i>
-              <span class="info-text bold">{{ stream.track_name }}</span>
-            </div>
-            <div class="info-row">
-              <i class="pi pi-trophy info-icon"></i>
-              <span class="info-text">{{ stream.series_name }}</span>
-            </div>
-            <div class="info-row">
-              <i class="pi pi-hashtag info-icon"></i>
-              <span class="info-text">Session {{ stream.session_number }}</span>
-            </div>
-            <div class="info-row">
-              <i class="pi pi-calendar info-icon"></i>
-              <span class="info-text">{{ stream.start_date }}</span>
-            </div>
-            <div class="info-row">
-              <i class="pi pi-users info-icon"></i>
-              <span class="info-text">{{ stream.team_name }}</span>
-            </div>
-            <div class="info-row">
-              <i class="pi pi-car info-icon"></i>
-              <span class="info-text">{{ stream.car_name }}</span>
+          <div class="filter-group">
+            <label class="filter-label">Max Time Since Start</label>
+            <div v-for="option in time_since_startOptions" :key="option.value" class="radio-option">
+              <RadioButton 
+                v-model="maxTimeSinceStart" 
+                :inputId="'start-' + option.value" 
+                :value="option.value"
+              />
+              <label :for="'start-' + option.value">{{ option.label }}</label>
             </div>
           </div>
+        </div>
+      </div>
+      
+      <!-- Lobby panels (streams) displayed prominently -->
+      <div class="streams-grid">
+        <Card 
+          v-for="stream in filteredStreams" 
+          :key="stream.id" 
+          class="stream-card"
+          @click="selectStream(stream)"
+        >
+          <template #content>
+            <div class="card-header">
+              <h3 class="card-title">{{ stream.lobby_name }}</h3>
+              <div class="time-indicators">
+                <div class="last-active">
+                  <i class="pi pi-clock"></i>
+                  <span>{{ getTimeAgo(stream.last_active) }}</span>
+                </div>
+                <div class="created-at">
+                  <i class="pi pi-calendar-plus"></i>
+                  <span>{{ getTimeAgo((Date.now() - stream.created_at) / 60000) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-info">
+              <div class="info-row">
+                <i class="pi pi-map-marker info-icon"></i>
+                <span class="info-text bold">{{ stream.track_name }} - {{ stream.track_config }}</span>
+              </div>
+              <div class="info-row">
+                <i class="pi pi-trophy info-icon"></i>
+                <span class="info-text">{{ getSeriesName(stream.series_id) }}</span>
+              </div>
+              <div class="info-row">
+                <i class="pi pi-hashtag info-icon"></i>
+                <span class="info-text">Session {{ stream.session_id }} ({{ stream.subsession_id }})</span>
+              </div>
+              <div class="info-row">
+                <i class="pi pi-users info-icon"></i>
+                <span class="info-text">{{ stream.team_name }}</span>
+              </div>
+              <div class="info-row">
+                <i class="pi pi-car info-icon"></i>
+                <span class="info-text">{{ getCarNameWithNumber(stream.car_name, stream.car_number) }}</span>
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
+      
+      <div v-if="filteredStreams.length === 0" class="no-results">
+        No streams match your filters
+      </div>
+      
+      <Dialog 
+        :visible="showModal" 
+        @update:visible="closeModal"
+        header="Enter Passcode" 
+        :modal="true"
+        :style="{ width: '450px' }"
+      >
+        <div v-if="selectedStream" class="modal-info">
+          <p class="modal-lobby">{{ selectedStream.lobby_name }}</p>
+          <p class="modal-track">{{ selectedStream.track_name }}</p>
+        </div>
+        
+        <div>
+          <label for="passcode" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Passcode</label>
+          <Password 
+            id="passcode"
+            v-model="passcode" 
+            :feedback="false"
+            placeholder="Enter passcode"
+            style="width: 100%"
+            :disabled="isAuthenticating"
+            @keyup.enter="handleSubmit"
+          />
+          <p v-if="error" class="error-text">{{ error }}</p>
+        </div>
+        
+        <template #footer>
+          <Button label="Cancel" severity="secondary" @click="closeModal" :disabled="isAuthenticating" />
+          <Button 
+            label="Submit" 
+            @click="handleSubmit" 
+            :loading="isAuthenticating"
+            :disabled="isAuthenticating"
+          />
         </template>
-      </Card>
+      </Dialog>
     </div>
-    
-    <div v-if="filteredStreams.length === 0" class="no-results">
-      No streams match your filters
-    </div>
-    
-    <Dialog 
-      :visible="showModal" 
-      @update:visible="closeModal"
-      header="Enter Passcode" 
-      :modal="true"
-      :style="{ width: '450px' }"
-    >
-      <div v-if="selectedStream" class="modal-info">
-        <p class="modal-lobby">{{ selectedStream.lobby_name }}</p>
-        <p class="modal-track">{{ selectedStream.track_name }}</p>
-      </div>
-      
-      <div>
-        <label for="passcode" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Passcode</label>
-        <Password 
-          id="passcode"
-          v-model="passcode" 
-          :feedback="false"
-          placeholder="Enter passcode"
-          style="width: 100%"
-          @keyup.enter="handleSubmit"
-        />
-        <p v-if="error" class="error-text">{{ error }}</p>
-        <p class="hint-text">Hint: The passcode is 1234</p>
-      </div>
-      
-      <template #footer>
-        <Button label="Cancel" severity="secondary" @click="closeModal" />
-        <Button label="Submit" @click="handleSubmit" />
-      </template>
-    </Dialog>
+    <EngineerPanel
+      v-else
+      :lobby_name="selectedLobbyName"
+      :auth_token="authToken || ''"
+      :use_mock_mode="useMockMode"
+      @back-to-lobby="backToLobby"
+    />
   </div>
 </template>
 
@@ -157,6 +194,9 @@ import Dropdown from 'primevue/dropdown';
 import RadioButton from 'primevue/radiobutton';
 import Dialog from 'primevue/dialog';
 import Password from 'primevue/password';
+import EngineerPanel from './components/EngineerPanel.vue';
+import { useDarkMode } from './composables/useDarkMode.js';
+import carCodesData from './assets/car_codes.json';
 
 export default {
   name: 'App',
@@ -167,18 +207,30 @@ export default {
     Dropdown,
     RadioButton,
     Dialog,
-    Password
+    Password,
+    EngineerPanel
+  },
+  setup() {
+    const { isDarkMode, toggleDarkMode } = useDarkMode();
+    return {
+      isDarkMode,
+      toggleDarkMode
+    };
   },
   data() {
     return {
+      useMockMode: true, // Default to mock mode for local development
       searchQuery: '',
       showFilters: false,
       trackFilter: 'all',
       maxLastActive: 'all',
       maxTimeSinceStart: 'all',
       selectedStream: null,
+      selectedLobbyName: null,
+      authToken: null,
       passcode: '',
       error: '',
+      isAuthenticating: false,
       allStreams: [],
       last_activeOptions: [
         { label: 'All', value: 'all' },
@@ -203,11 +255,15 @@ export default {
     };
   },
   async created() {
-    await this.fetchStreams();
+    if (!this.useMockMode) {
+      await this.fetchStreams();
+    } else {
+      this.allStreams = this.getMockStreams();
+    }
   },
   computed: {
     showModal() {
-      return this.selectedStream !== null;
+      return this.selectedStream !== null && !this.useMockMode;
     },
     trackOptions() {
       const tracks = [...new Set(this.allStreams.map(s => s.track_name))].sort();
@@ -239,6 +295,39 @@ export default {
     }
   },
   methods: {
+    getMockStreams() {
+      return [
+        {
+          id: 'mock-lobby-1',
+          lobby_name: 'Mock Racing Lobby',
+          track_name: 'Circuito de Navarra',
+          track_config: 'Speed Circuit Medium',
+          series_id: 491,
+          series_name: 'GT4 Challenge by Falken Tyre',
+          session_id: '12345',
+          subsession_id: '67890',
+          session_start_time: '2025-12-21 14:00:00',
+          team_name: 'Mock Team Racing',
+          car_id: 150,
+          car_name: 'Aston Martin Vantage GT4',
+          car_number: 11,
+          timestamp: new Date().toISOString(),
+          last_active: 2,
+          time_since_start: 30,
+          created_at: Date.now(),
+        }
+      ];
+    },
+    getSeriesName(seriesId) {
+      const series = carCodesData.find(s => s.series_id === seriesId);
+      return series ? series.series_name : 'Unknown Series';
+    },
+    getCarNameWithNumber(carName, carNumber) {
+      if (carNumber !== undefined && carNumber !== null) {
+        return `${carName} (#${carNumber})`;
+      }
+      return carName;
+    },
     async fetchStreams() {
       try {
         const response = await fetch('https://mbwbbsdgq7b7fd72nfjdhquqb40upvpx.lambda-url.eu-north-1.on.aws');
@@ -248,18 +337,21 @@ export default {
         }
         const data = await response.json();
         
-        // Normalize data to ensure all required fields exist
         const requiredFields = {
           id: '',
           lobby_name: '',
           track_name: '',
+          track_config: '',
           series_name: '',
-          session_number: '',
-          start_date: '',
+          session_id: '',
+          subsession_id: '',
+          session_start_time: '',
           team_name: '',
           car_name: '',
+          timestamp: '',
           last_active: 0,
-          time_since_start: 0
+          time_since_start: 0,
+          created_at: 0
         };
         
         this.allStreams = data.map(stream => ({
@@ -279,11 +371,56 @@ export default {
       const days = Math.floor(hours / 24);
       return `${days}d ago`;
     },
-    handleSubmit() {
-      if (this.passcode === '1234') {
-        window.location.href = 'https://google.com';
+    selectStream(stream) {
+      if (this.useMockMode) {
+        // In mock mode, skip authentication
+        this.selectedLobbyName = stream.lobby_name;
+        this.authToken = 'mock-token';
       } else {
-        this.error = 'Incorrect passcode. Please try again.';
+        this.selectedStream = stream;
+      }
+    },
+    async handleSubmit() {
+      if (!this.selectedStream) return;
+      
+      this.error = '';
+
+      if (this.passcode.length < 4 || this.passcode.length > 20) {
+        this.error = 'Passcode must be between 4 and 20 characters';
+        return;
+      }
+      
+      try {
+        const authEndpoint = 'https://r6jbq545tjnzk3clklpvyisnyu0gushh.lambda-url.eu-north-1.on.aws/';
+        
+        const response = await fetch(authEndpoint, {
+          method: 'POST',
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            lobby_name: this.selectedStream.lobby_name,
+            passcode: this.passcode
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          this.error = data.error || 'Authentication failed. Please try again.';
+          this.passcode = '';
+          return;
+        }
+        
+        this.authToken = data.token;
+        this.selectedLobbyName = data.lobby_name;
+        
+        this.closeModal();
+        
+      } catch (error) {
+        console.error('Authentication error:', error);
+        this.error = 'Failed to connect to authentication server. Please try again.';
         this.passcode = '';
       }
     },
@@ -291,52 +428,106 @@ export default {
       this.selectedStream = null;
       this.passcode = '';
       this.error = '';
+    },
+    backToLobby() {
+      this.selectedLobbyName = null;
+      this.authToken = null;
     }
   },
   watch: {
     selectedStream(newVal) {
       console.log('Selected stream changed:', newVal);
+    },
+    useMockMode(newVal) {
+      if (newVal) {
+        this.allStreams = this.getMockStreams();
+      } else {
+        this.fetchStreams();
+      }
     }
   }
 };
 </script>
 
 <style scoped>
-#app {
-  padding: 2rem;
-  background: linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%);
+.app-container {
+  position: relative;
+}
+
+.mock-mode-banner {
+  background: var(--mock-banner-bg);
+  color: var(--mock-banner-text);
+  text-align: center;
+  padding: 0.5rem;
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.landing-container {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, var(--app-bg-gradient-start) 0%, var(--app-bg-gradient-end) 100%);
   min-height: 100vh;
   max-width: 100%;
   box-sizing: border-box;
 }
 
-.header {
-  margin-bottom: 2rem;
+.compact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
 }
 
-.header h1 {
-  font-size: 2.5rem;
-  color: #1976d2;
-  margin: 0 0 0.5rem 0;
-}
-
-.header p {
-  color: #666;
+.compact-header h1 {
+  font-size: 1.8rem;
+  color: var(--primary-blue);
   margin: 0;
 }
 
-.filters-section {
-  background: white;
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dark-mode-toggle {
+  flex-shrink: 0;
+}
+
+.mock-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.mock-toggle input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.results-count {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.search-filters-compact {
+  background: var(--card-bg);
   border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px var(--card-shadow);
 }
 
 .search-bar {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
+  align-items: center;
 }
 
 .search-input {
@@ -349,7 +540,7 @@ export default {
   gap: 1.5rem;
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
 }
 
 .filter-group {
@@ -360,7 +551,7 @@ export default {
 
 .filter-label {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
@@ -370,17 +561,12 @@ export default {
   gap: 0.5rem;
 }
 
-.results-count {
-  color: #666;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
-
 .streams-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 1.5rem;
   width: 100%;
+  margin-bottom: 2rem;
 }
 
 .stream-card {
@@ -390,7 +576,7 @@ export default {
 
 .stream-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 8px 16px var(--card-shadow-hover) !important;
 }
 
 .card-header {
@@ -403,17 +589,31 @@ export default {
 .card-title {
   font-size: 1.25rem;
   font-weight: bold;
-  color: #1976d2;
+  color: var(--primary-blue);
   margin: 0;
+  flex: 1;
 }
 
-.last-active {
+.time-indicators {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-end;
+}
+
+.last-active,
+.created-at {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  color: #666;
-  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
   white-space: nowrap;
+}
+
+.created-at {
+  color: var(--text-muted);
+  font-size: 0.75rem;
 }
 
 .card-info {
@@ -429,13 +629,13 @@ export default {
 }
 
 .info-icon {
-  color: #1976d2;
+  color: var(--primary-blue);
   margin-top: 2px;
   flex-shrink: 0;
 }
 
 .info-text {
-  color: #333;
+  color: var(--text-primary);
   font-size: 0.9rem;
   line-height: 1.4;
 }
@@ -446,13 +646,13 @@ export default {
 
 .no-results {
   text-align: center;
-  padding: 3rem;
-  color: #999;
+  padding: 2rem;
+  color: var(--text-muted);
   font-size: 1.1rem;
 }
 
 .modal-info {
-  background: #e3f2fd;
+  background: var(--primary-blue-light);
   padding: 1rem;
   border-radius: 6px;
   margin-bottom: 1.5rem;
@@ -464,23 +664,42 @@ export default {
 
 .modal-lobby {
   font-weight: 600;
-  color: #1976d2;
+  color: var(--primary-blue);
 }
 
 .modal-track {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
-}
-
-.hint-text {
-  font-size: 0.85rem;
-  color: #666;
-  margin-top: 0.5rem;
 }
 
 .error-text {
   color: #d32f2f;
   font-size: 0.9rem;
   margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .landing-container {
+    padding: 0.5rem 1rem;
+  }
+  
+  .compact-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .compact-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .search-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .streams-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
