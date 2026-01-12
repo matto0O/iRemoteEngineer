@@ -3,7 +3,6 @@ from tkinter import ttk, messagebox
 import json
 from pathlib import Path
 
-
 # Configuration file path
 CONFIG_DIR = Path.home() / ".iremoteengineer"
 CONFIG_FILE = CONFIG_DIR / "pit_settings.json"

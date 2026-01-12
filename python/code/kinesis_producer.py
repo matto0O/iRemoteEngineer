@@ -2,6 +2,9 @@ import json
 import boto3
 from boto3.session import Session
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class KinesisProducer:
 	def __init__(self, stream_name="iRemoteEngineer", region="eu-north-1", 

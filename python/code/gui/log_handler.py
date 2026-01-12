@@ -1,6 +1,5 @@
 import logging
 import tkinter as tk
-from datetime import datetime
 
 class GUILogHandler(logging.Handler):
     """Custom logging handler that writes to a tkinter ScrolledText widget"""

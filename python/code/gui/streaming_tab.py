@@ -4,9 +4,12 @@ import webbrowser
 import threading
 import logging
 import os
+from dotenv import load_dotenv
+
 from gui.streaming_lifecycle import create_lobby_and_stream, join_lobby_and_stream, StreamingThreadController
 from gui.pit_stop_settings_tab import load_pit_settings
 
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 def get_streaming_tab(notebook, debug=False):
