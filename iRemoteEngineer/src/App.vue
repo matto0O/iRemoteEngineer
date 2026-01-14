@@ -73,14 +73,14 @@
           </div>
           
           <div class="filter-group">
-            <label class="filter-label">Max Time Since Start</label>
-            <div v-for="option in time_since_startOptions" :key="option.value" class="radio-option">
-              <RadioButton 
-                v-model="maxTimeSinceStart" 
-                :inputId="'start-' + option.value" 
+            <label class="filter-label">Max Time Since Lobby Creation</label>
+            <div v-for="option in lobbyCreationOptions" :key="option.value" class="radio-option">
+              <RadioButton
+                v-model="maxTimeSinceCreation"
+                :inputId="'creation-' + option.value"
                 :value="option.value"
               />
-              <label :for="'start-' + option.value">{{ option.label }}</label>
+              <label :for="'creation-' + option.value">{{ option.label }}</label>
             </div>
           </div>
         </div>
@@ -100,11 +100,11 @@
               <div class="time-indicators">
                 <div class="last-active">
                   <i class="pi pi-clock"></i>
-                  <span>{{ getTimeAgo(stream.last_active) }}</span>
+                  <span>{{ getTimeAgoFromTimestamp(stream.last_active) }}</span>
                 </div>
                 <div class="created-at">
                   <i class="pi pi-calendar-plus"></i>
-                  <span>{{ getTimeAgo((Date.now() - stream.created_at) / 60000) }}</span>
+                  <span>{{ getTimeAgoFromTimestamp(stream.created_at) }}</span>
                 </div>
               </div>
             </div>
@@ -124,11 +124,15 @@
               </div>
               <div class="info-row">
                 <i class="pi pi-users info-icon"></i>
-                <span class="info-text">{{ stream.team_name }}</span>
+                <span class="info-text">{{ stream.team_name }}<template v-if="stream.player_car_number"> (#{{ stream.player_car_number }})</template></span>
+              </div>
+              <div class="info-row" v-if="getClassForStream(stream)">
+                <i class="pi pi-flag info-icon"></i>
+                <span class="info-text">{{ getClassForStream(stream) }}</span>
               </div>
               <div class="info-row">
                 <i class="pi pi-car info-icon"></i>
-                <span class="info-text">{{ getCarNameWithNumber(stream.car_name, stream.car_number) }}</span>
+                <span class="info-text">{{ getCarModelName(stream.car_model_id) }}</span>
               </div>
             </div>
           </template>
@@ -196,7 +200,7 @@ import Dialog from 'primevue/dialog';
 import Password from 'primevue/password';
 import EngineerPanel from './components/EngineerPanel.vue';
 import { useDarkMode } from './composables/useDarkMode.js';
-import carCodesData from './assets/car_codes.json';
+import useCarData from './composables/useCarData.js';
 
 export default {
   name: 'App',
@@ -212,9 +216,13 @@ export default {
   },
   setup() {
     const { isDarkMode, toggleDarkMode } = useDarkMode();
+    const { getSeriesName, getCarModelName, getClassNameForCar } = useCarData();
     return {
       isDarkMode,
-      toggleDarkMode
+      toggleDarkMode,
+      getSeriesName,
+      getCarModelName,
+      getClassNameForCar
     };
   },
   data() {
@@ -224,7 +232,7 @@ export default {
       showFilters: false,
       trackFilter: 'all',
       maxLastActive: 'all',
-      maxTimeSinceStart: 'all',
+      maxTimeSinceCreation: 'all',
       selectedStream: null,
       selectedLobbyName: null,
       authToken: null,
@@ -242,7 +250,7 @@ export default {
         { label: 'Last 12 hours', value: 720 },
         { label: 'Today', value: 1440 }
       ],
-      time_since_startOptions: [
+      lobbyCreationOptions: [
         { label: 'All', value: 'all' },
         { label: 'Last 5 min', value: 5 },
         { label: 'Last 15 min', value: 15 },
@@ -277,19 +285,25 @@ export default {
         if (this.searchQuery && !stream.lobby_name.toLowerCase().includes(this.searchQuery.toLowerCase())) {
           return false;
         }
-        
+
         if (this.trackFilter !== 'all' && stream.track_name !== this.trackFilter) {
           return false;
         }
-        
-        if (this.maxLastActive !== 'all' && stream.last_active > this.maxLastActive) {
-          return false;
+
+        if (this.maxLastActive !== 'all') {
+          const lastActiveMinutes = this.getMinutesFromTimestamp(stream.last_active);
+          if (lastActiveMinutes > this.maxLastActive) {
+            return false;
+          }
         }
-        
-        if (this.maxTimeSinceStart !== 'all' && stream.time_since_start > this.maxTimeSinceStart) {
-          return false;
+
+        if (this.maxTimeSinceCreation !== 'all') {
+          const creationMinutes = this.getMinutesFromTimestamp(stream.created_at);
+          if (creationMinutes > this.maxTimeSinceCreation) {
+            return false;
+          }
         }
-        
+
         return true;
       });
     }
@@ -308,25 +322,15 @@ export default {
           subsession_id: '67890',
           session_start_time: '2025-12-21 14:00:00',
           team_name: 'Mock Team Racing',
-          car_id: 150,
-          car_name: 'Aston Martin Vantage GT4',
-          car_number: 11,
-          timestamp: new Date().toISOString(),
-          last_active: 2,
-          time_since_start: 30,
-          created_at: Date.now(),
+          car_model_id: 150,
+          player_car_number: 11,
+          last_active: (Date.now() - 2 * 60000) / 1000,
+          created_at: (Date.now() - 30 * 60000) / 1000,
         }
       ];
     },
-    getSeriesName(seriesId) {
-      const series = carCodesData.find(s => s.series_id === seriesId);
-      return series ? series.series_name : 'Unknown Series';
-    },
-    getCarNameWithNumber(carName, carNumber) {
-      if (carNumber !== undefined && carNumber !== null) {
-        return `${carName} (#${carNumber})`;
-      }
-      return carName;
+    getClassForStream(stream) {
+      return this.getClassNameForCar(stream.series_id, stream.car_model_id);
     },
     async fetchStreams() {
       try {
@@ -363,13 +367,19 @@ export default {
         this.allStreams = [];
       }
     },
-    getTimeAgo(minutes) {
+    getMinutesFromTimestamp(timestamp) {
+      // Handle Unix epoch seconds (float) - convert to milliseconds
+      const ts = typeof timestamp === 'string'
+        ? new Date(timestamp).getTime()
+        : timestamp * 1000;
+      return Math.ceil((Date.now() - ts) / 60000);
+    },
+    getTimeAgoFromTimestamp(timestamp) {
+      const minutes = this.getMinutesFromTimestamp(timestamp);
       if (minutes < 1) return 'Just now';
       if (minutes < 60) return `${minutes}m ago`;
-      const hours = Math.floor(minutes / 60);
-      if (hours < 24) return `${hours}h ago`;
-      const days = Math.floor(hours / 24);
-      return `${days}d ago`;
+      const hours = Math.ceil(minutes / 60);
+      return `${hours}h ago`;
     },
     selectStream(stream) {
       if (this.useMockMode) {
