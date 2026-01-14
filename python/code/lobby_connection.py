@@ -6,9 +6,6 @@ import os
 import sys
 from pathlib import Path
 import logging
-from dotenv import load_dotenv
-
-load_dotenv()
 
 logger = logging.getLogger(__name__)
 

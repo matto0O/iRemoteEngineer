@@ -9,7 +9,7 @@ from kinesis_producer import KinesisProducer
 
 logger = logging.getLogger(__name__)
 
-kinesis_producer = KinesisProducer()
+kinesis_producer = KinesisProducer(debug_mode=True)
 
 ir = IRSDK()
 state = State()
@@ -20,7 +20,7 @@ def send_data(key, value, **kwargs):
     to_send = {
         "type": key,
         "data": value,
-        "sender": state.uuid,
+        # "sender": state.uuid,
         "token": state.current_token
     }
     if kwargs:
@@ -29,6 +29,7 @@ def send_data(key, value, **kwargs):
     to_send["timestamp"] = get_timestamp()
     
     kinesis_producer.send_record(to_send, state.current_token)
+    logger.info(f"Sent {key} ({len(str(to_send))}B).")
 
 def run_jobs(interval=0.5):
     schedule.run_pending()
@@ -148,20 +149,31 @@ def new_incidents():
         tyre_data()
 
 def last_lap_data():
-    last_lap_time = ir['LapLastLapTime']
-
+    """Capture fuel/incidents immediately, schedule lap time fetch for later"""
     driver_name = ir['DriverInfo']['Drivers'][ir['PlayerCarIdx']]['UserName']
     fuel_consumed = state.computation_helpers['last_fuel_level'] - ir['FuelLevel']
     incidents_incurred = ir["PlayerCarMyIncidentCount"] - state.computation_helpers['last_lap_incidents']
     state.computation_helpers['last_fuel_level'] = ir['FuelLevel']
     state.computation_helpers['last_lap_incidents'] = ir["PlayerCarMyIncidentCount"]
-    lap_data = {
+
+    pending_data = {
         "driver_name": driver_name,
         "fuel_consumed": round(fuel_consumed, 2),
         "incidents_incurred": incidents_incurred,
-        "lap_time": format_lap_time(last_lap_time)
+    }
+
+    # Schedule sending with lap time in 5 seconds (runs once then cancels)
+    schedule.every(5).seconds.do(send_lap_data_with_time, pending_data=pending_data).tag('lap_data_delayed')
+
+def send_lap_data_with_time(pending_data):
+    """Send lap data with the now-updated lap time"""
+    lap_data = {
+        **pending_data,
+        "lap_time": format_lap_time(ir['LapLastLapTime'])
     }
     send_data("lap_history", lap_data)
+
+    return schedule.CancelJob
 
 def get_speed():
     return ir['WindVel'] * 3.6
@@ -192,7 +204,6 @@ def weather_info():
         "precipitation": round(float(ir['Precipitation']), 1), 
         "declared_wet": declared_wet,
     }
-
     send_data("weather", weather_data)
 
 def tyre_data():
@@ -258,7 +269,7 @@ def relative():
             "car_class_position": class_pos,
             "gap_leader": round(gap_leader, 3),
             "car_position": position,
-            "car_est_time": round(est_time, 3),
+            # "car_est_time": round(est_time, 3),
             "distance_pct": round(dist_pct, 3),
             "in_pit": in_pit,
             "lap": lap,
@@ -277,16 +288,18 @@ def relative():
     else:
         for car in car_data:
             car_number = car['car_number']
-            modifiable_car = car.copy()
-            if car['car_number'] in state.computation_helpers['cars']:
+            changed_fields = {}
+            if car_number in state.computation_helpers['cars']:
                 car_info = state.computation_helpers['cars'][car_number]
-
                 for key, value in car.items():
-                    if car_info.get(key, None) == value:
-                        del modifiable_car[key]
-            if modifiable_car:
-                changed_data[car_number] = modifiable_car
-            state.computation_helpers['cars'][car_number] = modifiable_car
+                    if car_info.get(key, None) != value:
+                        changed_fields[key] = value
+            else:
+                changed_fields = car
+
+            if changed_fields:
+                changed_data[car_number] = changed_fields
+            state.computation_helpers['cars'][car_number] = car
 
         if changed_data:
             send_data("cars", changed_data)

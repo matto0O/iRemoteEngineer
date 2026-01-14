@@ -3,13 +3,10 @@ import threading
 import requests
 import logging
 import os
-from dotenv import load_dotenv
 
 from race_computations import schedule_data_ingestion, run_jobs, ir, state, clear_jobs, execute_commands
 from lobby_connection import create_lobby as _create_lobby, join_lobby as _join_lobby, disconnect_all_iot
 from gui.data_settings_tab import load_intervals
-
-load_dotenv()
 logger = logging.getLogger(__name__)
 
 class StreamingThreadController:
