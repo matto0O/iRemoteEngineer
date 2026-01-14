@@ -331,14 +331,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, defineProps, onMounted } from 'vue'
+import { ref, computed, watch, defineProps } from 'vue'
 import Card from 'primevue/card'
 import ButtonGroup from 'primevue/buttongroup'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import useRaceData from '@/composables/useRaceData'
-import carCodesData from '@/assets/car_codes.json'
+import useCarData from '@/composables/useCarData'
 
 const props = defineProps({
   socket: {
@@ -349,6 +349,9 @@ const props = defineProps({
 
 // Get shared race data from composable
 const { data } = useRaceData(props.socket)
+
+// Get car data utilities from composable
+const { getCarModelName, getClassName } = useCarData()
 
 // Load settings from localStorage with defaults
 const loadFromLocalStorage = (key, defaultValue) => {
@@ -437,38 +440,6 @@ watch(displayMode, (newVal) => {
   saveToLocalStorage('carTracker_displayMode', newVal)
 })
 
-// Car codes lookup maps
-const carModelMap = ref(new Map())
-const classMap = ref(new Map())
-
-// Build lookup maps from car_codes.json
-onMounted(() => {
-  carCodesData.forEach(series => {
-    // Build car model map
-    series.cars.forEach(car => {
-      if (!carModelMap.value.has(car.car_id)) {
-        carModelMap.value.set(car.car_id, car.car_name)
-      }
-    })
-    
-    // Build class map
-    series.classes.forEach(carClass => {
-      if (!classMap.value.has(carClass.class_id)) {
-        classMap.value.set(carClass.class_id, carClass.class_name)
-      }
-    })
-  })
-})
-
-// Get car model name from ID
-const getCarModelName = (carModelId) => {
-  return carModelMap.value.get(carModelId) || `Car ${carModelId}`
-}
-
-// Get class name from ID
-const getClassName = (classId) => {
-  return classMap.value.get(classId) || `Class ${classId}`
-}
 
 // Function to format time value as seconds
 const formatTime = (timeValue) => {
