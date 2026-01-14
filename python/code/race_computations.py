@@ -9,7 +9,7 @@ from kinesis_producer import KinesisProducer
 
 logger = logging.getLogger(__name__)
 
-kinesis_producer = KinesisProducer(debug_mode=True)
+kinesis_producer = KinesisProducer()
 
 ir = IRSDK()
 state = State()
