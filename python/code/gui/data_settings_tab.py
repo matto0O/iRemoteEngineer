@@ -14,7 +14,6 @@ DATA_GROUP_DESCRIPTIONS = {
     "relative": "Real-time position data relative to other cars. Includes:\n• Cars positions\n• Gap times\n• Position in class\n• Overall position\n• Distance to cars\n• New lap times\n• Current drivers",
     "weather": "Current weather and track conditions. Includes:\n• Air temperature\n• Track temperature\n• Wind speed and direction\n• Precipitation\n• Track wetness level",
     "incidents": "Incident and penalty information. Includes:\n• Incident count\n• Total incident points",
-    "tow": "Checks if the car is being towed.",
     "tyres": "Tire wear and temperature data. Includes:• Tire temperature\n• Tire wear percentage",
     "pit": "Checks if performing a pit stop and if taking a fast repair."
 }
@@ -96,22 +95,17 @@ DEFAULT_SETTINGS = {
     },
     "weather": {
         "enabled": True,
-        "mode": "interval",
+        "mode": "lap",
         "interval": 30
-    },
-    "tow": {
-        "enabled": True,
-        "mode": "interval",
-        "interval": 15
     },
     "incidents": {
         "enabled": True,
-        "mode": "interval",
+        "mode": "lap",
         "interval": 15
     },
     "tyres": {
         "enabled": True,
-        "mode": "interval",
+        "mode": "lap",
         "interval": 20
     },
     "pit": {
@@ -421,7 +415,7 @@ def get_data_settings_tab(notebook):
     
     # Create data group widgets
     data_groups = {}
-    for group_name in ["lap_finish", "relative", "weather", "incidents", "tyres", "pit", "tow"]:
+    for group_name in ["lap_finish", "relative", "weather", "incidents", "tyres", "pit"]:
         group_settings = current_settings.get(group_name, DEFAULT_SETTINGS[group_name])
         widget = DataGroupWidget(scrollable_frame, group_name, group_settings)
         widget.pack(fill=tk.X, pady=5, padx=5)
