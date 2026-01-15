@@ -309,6 +309,7 @@ def relative():
 
     if in_car_status_changed():
         get_session_info()
+        is_towed()
 
     return changed_data
 
