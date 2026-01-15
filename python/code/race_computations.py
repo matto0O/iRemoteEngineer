@@ -210,12 +210,12 @@ def weather_info():
 def tyre_data():
     def get_tyre_data(prefix):
         return {
-            "left_carcass_temp": round(ir[f"{prefix}tempCL"], 1),
-            "middle_carcass_temp": round(ir[f"{prefix}tempCM"],1),
-            "right_carcass_temp": round(ir[f"{prefix}tempCR"], 1),
-            "left_tread_remaning": round(ir[f"{prefix}wearL"] * 100, 1),
-            "middle_tread_remaning": round(ir[f"{prefix}wearM"] * 100, 1),
-            "right_tread_remaning": round(ir[f"{prefix}wearR"] * 100, 1)
+            "left_carcass_temp": round(ir[f"{prefix}tempCL"]),
+            "middle_carcass_temp": round(ir[f"{prefix}tempCM"]),
+            "right_carcass_temp": round(ir[f"{prefix}tempCR"]),
+            "left_tread_remaning": round(ir[f"{prefix}wearL"] * 100),
+            "middle_tread_remaning": round(ir[f"{prefix}wearM"] * 100),
+            "right_tread_remaning": round(ir[f"{prefix}wearR"] * 100)
         }
 
     tyres = {
