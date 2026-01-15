@@ -249,7 +249,6 @@ def relative():
     their_position = ir['CarIdxPosition']
     their_lap = ir['CarIdxLap']
     their_distance_pct = ir['CarIdxLapDistPct']
-    their_est_time = ir["CarIdxEstTime"]
     their_class_position = ir["CarIdxClassPosition"]
     them_pit_road = ir['CarIdxOnPitRoad']
     their_gap_leader = ir['CarIdxF2Time']
@@ -258,9 +257,9 @@ def relative():
     ir.unfreeze_var_buffer_latest()
     # Format last lap time once for each car
     car_data = []
-    for car, position, dist_pct, in_pit, lap, est_time, class_pos, gap_leader, last_lap in zip(
+    for car, position, dist_pct, in_pit, lap, class_pos, gap_leader, last_lap in zip(
             all_cars, their_position, their_distance_pct, them_pit_road,
-            their_lap, their_est_time, their_class_position, their_gap_leader, their_last_lap):
+            their_lap, their_class_position, their_gap_leader, their_last_lap):
 
         car_data.append({
             "user_name": car.user_name,
@@ -271,7 +270,6 @@ def relative():
             "car_class_position": class_pos,
             "gap_leader": round(gap_leader, 3),
             "car_position": position,
-            # "car_est_time": round(est_time, 3),
             "distance_pct": round(dist_pct, 3),
             "in_pit": in_pit,
             "lap": lap,
@@ -356,6 +354,7 @@ def post_lap_invocations(funcs=[]):
         last_lap_data()
         for func in funcs:
             func()
+        get_session_info()
 
 def get_session_info():
     weekend_info = ir['WeekendInfo']
