@@ -54,6 +54,17 @@
               ></Button>
             </ButtonGroup>
           </div>
+          <div class="filter-group filter-group-inline">
+            <label class="filter-label">Animation:</label>
+            <Button
+              :label="animateCars ? 'On' : 'Off'"
+              :icon="animateCars ? 'pi pi-play' : 'pi pi-pause'"
+              size="small"
+              :severity="animateCars ? 'success' : 'secondary'"
+              :outlined="!animateCars"
+              @click="animateCars = !animateCars"
+            />
+          </div>
         </div>
 
         <!-- Collapsible Column Options -->
@@ -138,7 +149,7 @@
       <div v-for="car in filteredCars" :key="car.id">
         <div
           v-if="isPlayerCar(car)"
-          class="car-marker player-car-marker"
+          :class="['car-marker', 'player-car-marker', { 'no-animation': !animateCars }]"
           :style="{
             left: car.distance_pct * 100 + '%',
             backgroundColor: 'white',
@@ -168,7 +179,7 @@
         </div>
         <div
           v-else-if="!isPaceCar(car)"
-          class="car-marker"
+          :class="['car-marker', { 'no-animation': !animateCars }]"
           :style="{
             left: car.distance_pct * 100 + '%',
             backgroundColor: getClassColor(car.class_id),
@@ -378,6 +389,7 @@ const disabledCarModels = ref(loadFromLocalStorage('carTracker_disabledCarModels
 const showFilters = ref(false)
 const showTrackOptions = ref(false)
 const showColumnOptions = ref(false)
+const animateCars = ref(loadFromLocalStorage('carTracker_animateCars', true))
 const hoveredCarNumber = ref(null)
 const selectedCars = ref([])
 const highlightedCars = ref([])
@@ -438,6 +450,10 @@ watch(visibleColumns, (newVal) => {
 
 watch(displayMode, (newVal) => {
   saveToLocalStorage('carTracker_displayMode', newVal)
+})
+
+watch(animateCars, (newVal) => {
+  saveToLocalStorage('carTracker_animateCars', newVal)
 })
 
 
@@ -857,6 +873,12 @@ const customSort = (event) => {
   gap: 0.75rem;
 }
 
+.filter-group-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .filter-label {
   font-weight: 600;
   color: var(--text-primary);
@@ -875,6 +897,7 @@ const customSort = (event) => {
   background-color: #ccc;
   border-radius: 4px;
   overflow: visible;
+  margin-top: 25px;
 }
 
 .dark-mode .track-strip {
@@ -926,6 +949,10 @@ const customSort = (event) => {
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
   transition: left 0.5s ease, transform 0.2s ease, z-index 0.2s, border 0.2s ease;
   cursor: pointer;
+}
+
+.car-marker.no-animation {
+  transition: transform 0.2s ease, z-index 0.2s, border 0.2s ease;
 }
 
 .car-marker:hover {
