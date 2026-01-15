@@ -667,7 +667,9 @@ const filteredCars = computed(() => {
 
 const sortedFilteredCars = computed(() => {
   return [...filteredCars.value].sort((a, b) => {
-    return (a.car_position || 999) - (b.car_position || 999)
+    const posA = a.car_position === 0 || a.car_position == null ? Infinity : a.car_position
+    const posB = b.car_position === 0 || b.car_position == null ? Infinity : b.car_position
+    return posA - posB
   })
 })
 
