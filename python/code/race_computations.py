@@ -197,12 +197,12 @@ def weather_info():
     speed = get_speed()
     
     weather_data = {
-        "air_temp": round(ir['AirTemp'], 1),
-        "track_temp": round(ir['TrackTempCrew'], 1),
-        "wind_speed": round(speed, 1),
-        "wind_direction": f"{wind_direction} ({angle:.1f}°)",
+        "air_temp": round(ir['AirTemp']),
+        "track_temp": round(ir['TrackTempCrew']),
+        "wind_speed": round(speed),
+        "wind_direction": f"{wind_direction} ({round(angle)}°)",
         "track_wetness": track_wetness,
-        "precipitation": round(float(ir['Precipitation']), 1), 
+        "precipitation": round(float(ir['Precipitation'])), 
         "declared_wet": declared_wet,
     }
     send_data("weather", weather_data)
