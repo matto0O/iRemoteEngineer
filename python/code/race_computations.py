@@ -305,9 +305,16 @@ def relative():
         if changed_data:
             send_data("cars", changed_data)
 
+    send_sesh_info = state.session_info.get("team_name", None) == None or\
+        state.session_info.get("player_car_number", None) == None or\
+        state.session_info.get("car_model_id", None) == None
+        
     state.session_info["team_name"] = all_cars[my_car_idx].team_name
     state.session_info["player_car_number"] = all_cars[my_car_idx].car_number
     state.session_info["car_model_id"] = all_cars[my_car_idx].car_model_id
+
+    if send_sesh_info:
+        get_session_info()
 
     if in_car_status_changed():
         get_session_info()
