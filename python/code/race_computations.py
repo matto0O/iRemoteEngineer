@@ -70,7 +70,6 @@ def schedule_data_ingestion(token, intervals={}):
             schedule_job(function_mapping[key], data["interval"])
 
     schedule_job(post_lap_invocations, intervals["lap_finish"]["interval"], funcs=lap_based_functions)
-    get_session_info() # get session info again to get car and team data
     
 def get_timestamp():
     return datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')
@@ -308,6 +307,9 @@ def relative():
     state.session_info["player_car_number"] = all_cars[my_car_idx].car_number
     state.session_info["car_model_id"] = all_cars[my_car_idx].car_model_id
 
+    if in_car_status_changed():
+        get_session_info()
+
     return changed_data
 
 def check_if_in_pit():
@@ -339,7 +341,6 @@ def lap_finished():
 
 def post_lap_invocations(funcs=[]):
     if lap_finished():
-        get_session_info()
         fuel_data()
         last_lap_data()
         for func in funcs:
@@ -368,23 +369,26 @@ def get_session_info():
             state.session_info.update(data)
             send_data("session_info", data, reset=True)
             return
-    if data["session_type"] != state.session_info["session_type"]:
-        logger.info(f"Session changed to: {data['session_type']}")
-        send_data("session_info", data)
+    if data["session_type"] != state.session_info["session_type"] or \
+        (data["car_model_id"] != state.session_info["car_model_id"] and data["car_model_id"] != None) or \
+        (data["team_name"] != state.session_info["team_name"] and data["team_name"] != None) or \
+        (data["player_car_number"] != state.session_info["player_car_number"] and data["player_car_number"] != None):
+          send_data("session_info", data)
 
 # TODO incorporate below
 
-def in_the_car():
+def in_car_status_changed():
     if ir["IsOnTrack"] != state.computation_helpers["in_car"]:
-        state.computation_helpers["in_car"]
-        send_data('in_car', 
-            {
-                "user_in_car": ir["IsOnTrack"],
-                "any_driver_in_car": ir["IsOnTrackCar"]
-            }
-        )
+        state.computation_helpers["in_car"] = ir["IsOnTrack"]
+        # send_data('in_car', 
+        #     {
+        #         "user_in_car": ir["IsOnTrack"],
+        #         "any_driver_in_car": ir["IsOnTrackCar"]
+        #     }
+        # )
 
-    return ir["IsOnTrack"]
+        return True
+    return False
 
 def is_towed():
     tow_time = ir["PlayerCarTowTime"]
