@@ -151,11 +151,13 @@ def last_lap_data():
     """Capture fuel/incidents immediately, schedule lap time fetch for later"""
     driver_name = ir['DriverInfo']['Drivers'][ir['PlayerCarIdx']]['UserName']
     fuel_consumed = state.computation_helpers['last_fuel_level'] - ir['FuelLevel']
+    last_lap_number = ir['Lap'] - 1
     incidents_incurred = ir["PlayerCarMyIncidentCount"] - state.computation_helpers['last_lap_incidents']
     state.computation_helpers['last_fuel_level'] = ir['FuelLevel']
     state.computation_helpers['last_lap_incidents'] = ir["PlayerCarMyIncidentCount"]
 
     pending_data = {
+        "lap_number": last_lap_number,
         "driver_name": driver_name,
         "fuel_consumed": round(fuel_consumed, 2),
         "incidents_incurred": incidents_incurred,
