@@ -216,7 +216,7 @@ const tyreData = computed(() => {
 });
 
 const formatValue = (value) => {
-  return typeof value === 'number' ? value.toFixed(2) : value;
+  return typeof value === 'number' ? Math.round(value) : value;
 };
 
 const getTempBarHeight = (temp) => {
@@ -308,9 +308,9 @@ const getWearClass = (wear) => {
 
 <style scoped>
 .tyre-container {
-  max-width: 1200px;
-  margin: 20px auto;
-  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .tyre-card {
@@ -333,7 +333,7 @@ const getWearClass = (wear) => {
 .tyre-card :deep(.p-card-title) {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 16px 16px 0 0;
   margin: 0;
 }
@@ -343,26 +343,26 @@ const getWearClass = (wear) => {
 }
 
 .tyre-card :deep(.p-card-content) {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 1.5rem;
+  gap: 0.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
 .card-header-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card-header i {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
 }
 
 .view-toggle-btn {
@@ -372,14 +372,14 @@ const getWearClass = (wear) => {
 .tyre-visual-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .tyre-visual-item {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1.25rem;
+  background: var(--filter-content-bg, #f8f9fa);
+  border-radius: 10px;
+  padding: 0.75rem;
   transition: all 0.3s ease;
   border: 2px solid transparent;
 }
@@ -446,7 +446,9 @@ const getWearClass = (wear) => {
 
 .temp-bar-wrapper,
 .wear-bar-wrapper {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 33.33%;
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
@@ -458,7 +460,7 @@ const getWearClass = (wear) => {
 
 .temp-bar,
 .wear-bar {
-  width: 100%;
+  width: 24px;
   border-radius: 6px;
   min-height: 15%;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);

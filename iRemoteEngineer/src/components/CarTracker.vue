@@ -777,9 +777,8 @@ const customSort = (event) => {
 
 <style scoped>
 .car-tracker-wrapper {
-  max-width: 1400px;
-  margin: 20px auto;
-  padding: 1rem;
+  width: 100%;
+  padding: 0;
 }
 
 .car-tracker-card {
@@ -802,7 +801,7 @@ const customSort = (event) => {
 .car-tracker-card :deep(.p-card-title) {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 16px 16px 0 0;
   margin: 0;
 }
@@ -812,44 +811,44 @@ const customSort = (event) => {
 }
 
 .car-tracker-card :deep(.p-card-content) {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  font-size: 1.5rem;
+  gap: 0.75rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
 .card-header-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card-header-left i {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
 }
 
 .card-header-controls {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 /* Filters Section */
 .filters-section {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding: 1.25rem;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
   background: var(--filter-content-bg);
-  border-radius: 12px;
-  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
 }
 
 .filter-group {

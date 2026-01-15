@@ -227,7 +227,7 @@ export default {
   },
   data() {
     return {
-      useMockMode: true, // Default to mock mode for local development
+      useMockMode: false, // Default to real data
       searchQuery: '',
       showFilters: false,
       trackFilter: 'all',
@@ -462,6 +462,8 @@ export default {
 <style scoped>
 .app-container {
   position: relative;
+  width: 100%;
+  min-width: 100%;
 }
 
 .mock-mode-banner {

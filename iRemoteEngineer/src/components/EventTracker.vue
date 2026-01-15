@@ -107,18 +107,6 @@
             </div>
 
             <div class="counter-card">
-              <div class="counter-icon repair-icon">
-                <i class="pi pi-wrench"></i>
-              </div>
-              <div class="counter-data">
-                <div class="counter-label">Fast Repairs Used</div>
-                <div :class="['counter-value', {'high-value': fastRepairsUsed > 1}]">
-                  {{ fastRepairsUsed }}
-                </div>
-              </div>
-            </div>
-
-            <div class="counter-card">
               <div class="counter-icon events-icon">
                 <i class="pi pi-list"></i>
               </div>
@@ -190,10 +178,6 @@ const totalIncidents = computed(() => {
   return data.value?.total_incidents || 0;
 });
 
-const fastRepairsUsed = computed(() => {
-  return data.value?.fast_repairs_used || 0;
-});
-
 const formatTime = (timestamp) => {
   if (timestamp && timestamp.includes(',')) {
     return timestamp.split(', ')[1];
@@ -238,9 +222,9 @@ const getFilterIcon = (value) => {
 
 <style scoped>
 .events-container {
-  max-width: 1000px;
-  margin: 20px auto;
-  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .events-card {
@@ -263,7 +247,7 @@ const getFilterIcon = (value) => {
 .events-card :deep(.p-card-title) {
   background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   color: white;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 16px 16px 0 0;
   margin: 0;
 }
@@ -273,32 +257,32 @@ const getFilterIcon = (value) => {
 }
 
 .events-card :deep(.p-card-content) {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 1.5rem;
+  gap: 0.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
 .card-header-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card-header i {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
 }
 
 .card-header-buttons {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .view-toggle-btn,
@@ -308,35 +292,35 @@ const getFilterIcon = (value) => {
 
 .no-events {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 2rem 1rem;
   color: #6c757d;
 }
 
 .no-events i {
-  font-size: 3rem;
+  font-size: 2rem;
   color: #dee2e6;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .no-events p {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-style: italic;
 }
 
 .counters-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
 .counter-card {
   background: var(--filter-content-bg);
-  border-radius: 12px;
-  padding: 1.25rem;
+  border-radius: 8px;
+  flex: 1;
+  padding: 0.6rem 0.75rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.6rem;
   transition: all 0.3s ease;
   border: 2px solid transparent;
 }
@@ -353,13 +337,13 @@ const getFilterIcon = (value) => {
 }
 
 .counter-icon {
-  width: 50px;
-  height: 50px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 0.9rem;
   color: white;
   flex-shrink: 0;
 }
@@ -381,18 +365,18 @@ const getFilterIcon = (value) => {
 }
 
 .counter-label {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: #6c757d;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.1rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .counter-value {
-  font-size: 1.75rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--text-primary, #2c3e50);
 }
 
 .high-value {
@@ -411,12 +395,12 @@ const getFilterIcon = (value) => {
 
 .filters-container {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
   flex-wrap: wrap;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 12px;
+  padding: 0.5rem;
+  background: var(--filter-content-bg, #f8f9fa);
+  border-radius: 8px;
 }
 
 .filter-btn {
@@ -464,9 +448,9 @@ const getFilterIcon = (value) => {
 .event-time {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
   color: #6c757d;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-family: monospace;
 }
 
@@ -477,13 +461,13 @@ const getFilterIcon = (value) => {
 .event-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: 12px;
-  font-size: 0.85rem;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .event-badge-incident {

@@ -71,27 +71,28 @@
         <DataTable
           :value="filteredLaps"
           :scrollable="true"
-          scrollHeight="500px"
+          scrollHeight="300px"
           stripedRows
           sortMode="single"
-          class="p-datatable-sm"
+          class="p-datatable-sm lap-history-table"
           :rowClass="getRowClass"
+          tableStyle="width: 100%;"
         >
-          <Column field="lapNumber" header="Lap #" sortable style="width: 80px"></Column>
-          <Column field="driver_name" header="Driver" sortable style="min-width: 150px"></Column>
-          <Column field="lap_time" header="Lap Time" sortable style="width: 120px">
+          <Column field="lapNumber" header="Lap" sortable style="width: 50px; max-width: 50px;"></Column>
+          <Column field="driver_name" header="Driver" sortable style="min-width: 80px;"></Column>
+          <Column field="lap_time" header="Time" sortable style="width: 80px; max-width: 80px;">
             <template #body="slotProps">
               <div class="time-cell">{{ slotProps.data.lap_time }}</div>
             </template>
           </Column>
-          <Column field="fuel_consumed" header="Fuel Used" sortable style="width: 110px">
+          <Column field="fuel_consumed" header="Fuel" sortable style="width: 70px; max-width: 70px;">
             <template #body="slotProps">
               <div :class="getFuelCellClass(slotProps.data)">
-                {{ convertFuel(slotProps.data.fuel_consumed).toFixed(2) }}{{ getFuelUnit() }}
+                {{ convertFuel(slotProps.data.fuel_consumed).toFixed(2) }}
               </div>
             </template>
           </Column>
-          <Column field="incidents_incurred" header="Incidents" sortable style="width: 100px">
+          <Column field="incidents_incurred" header="Inc" sortable style="width: 40px; max-width: 40px;">
             <template #body="slotProps">
               <div :class="['incident-cell', { 'has-incident': slotProps.data.incidents_incurred > 0 }]">
                 {{ slotProps.data.incidents_incurred }}
@@ -450,9 +451,9 @@ const statistics = computed(() => {
 
 <style scoped>
 .lap-history-container {
-  max-width: 1100px;
-  margin: 20px auto;
-  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .lap-history-card {
@@ -475,7 +476,7 @@ const statistics = computed(() => {
 .lap-history-card :deep(.p-card-title) {
   background: linear-gradient(135deg, #8e44ad 0%, #3498db 100%);
   color: white;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 16px 16px 0 0;
   margin: 0;
 }
@@ -485,32 +486,32 @@ const statistics = computed(() => {
 }
 
 .lap-history-card :deep(.p-card-content) {
-  padding: 1.5rem;
+  padding: 0.75rem;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 1.5rem;
+  gap: 0.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
 .card-header-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card-header-buttons {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .card-header i {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
 }
 
 .view-toggle-btn,
@@ -573,33 +574,33 @@ const statistics = computed(() => {
 .filters-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  padding: 1.25rem;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
   background: #f8f9fa;
-  border-radius: 12px;
-  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.3rem;
 }
 
 .filter-label {
   font-weight: 600;
   color: #2c3e50;
-  font-size: 1rem;
+  font-size: 0.8rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .filter-label::before {
   content: "•";
   color: #8e44ad;
-  font-size: 1.5rem;
+  font-size: 1rem;
 }
 
 .driver-filters,
@@ -623,29 +624,35 @@ const statistics = computed(() => {
 }
 
 .lap-history-table-container {
-  max-height: 500px;
+  max-height: 350px;
   overflow-y: auto;
-  margin-bottom: 1rem;
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
   border: 1px solid #eee;
   border-radius: 4px;
   position: relative;
 }
 
+.lap-history-table {
+  width: 100% !important;
+}
+
 :deep(.p-datatable) {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 :deep(.p-datatable .p-datatable-thead > tr > th) {
   background-color: #f1f1f1;
-  padding: 0.6rem;
+  padding: 0.4rem 0.5rem;
   position: sticky;
   top: 0;
   z-index: 1;
   border-bottom: 2px solid #ddd;
+  font-size: 0.75rem;
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr > td) {
-  padding: 0.6rem;
+  padding: 0.35rem 0.5rem;
   border-bottom: 1px solid #eee;
 }
 
@@ -668,7 +675,7 @@ const statistics = computed(() => {
 
 .time-cell {
   font-family: monospace;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
 }
 
 .fuel-cell {
@@ -679,14 +686,14 @@ const statistics = computed(() => {
 .fuel-cell.lowest-fuel {
   background-color: #c8e6c9;
   font-weight: 600;
-  padding: 0.2rem 0.4rem;
+  padding: 0.1rem 0.3rem;
   border-radius: 3px;
 }
 
 .fuel-cell.lowest-fuel-alt {
   background-color: #fff9c4;
   font-weight: 600;
-  padding: 0.2rem 0.4rem;
+  padding: 0.1rem 0.3rem;
   border-radius: 3px;
 }
 
@@ -712,43 +719,45 @@ const statistics = computed(() => {
 }
 
 .statistics-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  padding: 1.25rem;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
   background: #f8f9fa;
-  border-radius: 12px;
-  border: 2px solid #dee2e6;
-  margin-top: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: 0.2rem;
+  padding: 0.4rem 0.6rem;
   background: white;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.3s ease;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
+  flex: 1;
+  min-width: 80px;
 }
 
 .stat-item:hover {
   border-color: #8e44ad;
-  box-shadow: 0 4px 12px rgba(142, 68, 173, 0.2);
-  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(142, 68, 173, 0.2);
+  transform: translateY(-1px);
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.65rem;
   color: #6c757d;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .stat-value {
-  font-size: 1.5rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: #2c3e50;
   font-family: monospace;

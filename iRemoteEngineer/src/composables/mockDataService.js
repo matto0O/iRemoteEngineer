@@ -218,13 +218,13 @@ export class MockDataService {
           "lap_time": "1:34.990"
         },
         {
-          "driver_name": "Mike Wazowski",
+          "driver_name": "Tanguy Francheateau",
           "fuel_consumed": 3.2,
           "incidents_incurred": 1,
           "lap_time": "1:34.021"
         },
         {
-          "driver_name": "Mike Wazowski",
+          "driver_name": "Tanguy Francheateau",
           "fuel_consumed": 3.2,
           "incidents_incurred": 1,
           "lap_time": "1:32.021"

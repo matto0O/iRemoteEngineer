@@ -114,14 +114,25 @@
       auth_token: {{ auth_token }}
     </div>
 
-    <div v-if="isConnected && safeSocket" class="component-container">
-      <CarTracker :socket="safeSocket" />
-      <FuelAnalysis :socket="safeSocket" />
-      <TyreDetails :socket="safeSocket" />
-      <WeatherInfo :socket="safeSocket" />
-      <EventTracker :socket="safeSocket" />
-      <PitSettings :socket="safeSocket" :authToken="auth_token" />
-      <LapHistory :socket="safeSocket" />
+    <div v-if="isConnected && safeSocket" class="dashboard-container">
+      <!-- Main area: Car Tracker takes full width -->
+      <div class="dashboard-main">
+        <CarTracker :socket="safeSocket" />
+      </div>
+
+      <!-- Second row: Fuel Analysis, Pit Settings, Race Events -->
+      <div class="dashboard-row">
+        <FuelAnalysis :socket="safeSocket" />
+        <PitSettings :socket="safeSocket" :authToken="auth_token" />
+        <EventTracker :socket="safeSocket" />
+      </div>
+
+      <!-- Third row: Lap History, Tyre Details, Weather -->
+      <div class="dashboard-row">
+        <LapHistory :socket="safeSocket" />
+        <TyreDetails :socket="safeSocket" />
+        <WeatherInfo :socket="safeSocket" />
+      </div>
     </div>
     <div v-else class="loading-container">
       <p>{{ useMockMode ? 'Initializing mock data...' : 'Connecting to race data...' }}</p>
@@ -321,8 +332,51 @@ onBeforeUnmount(() => {
   color: var(--text-primary);
 }
 
-.component-container {
-  padding: 20px;
+/* Dashboard Grid Layout */
+.dashboard-container {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.dashboard-main {
+  width: 100%;
+}
+
+.dashboard-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+/* Third row: Lap History and Tyre Details get more space, Weather is thinner */
+.dashboard-row:last-child {
+  grid-template-columns: 1.3fr 1.3fr 0.7fr;
+}
+
+/* Make widgets fill their grid cells */
+.dashboard-row > :deep(*),
+.dashboard-main > :deep(*) {
+  margin: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
+}
+
+/* Responsive: 2 columns on medium screens */
+@media (max-width: 1400px) {
+  .dashboard-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Responsive: 1 column on small screens */
+@media (max-width: 900px) {
+  .dashboard-row {
+    grid-template-columns: 1fr;
+  }
+
 }
 
 .loading-container {

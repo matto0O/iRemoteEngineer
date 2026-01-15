@@ -20,14 +20,51 @@
       <template #content>
         <!-- Summary Data (Detailed only) -->
         <div v-if="displayMode === 'detailed'" class="summary-grid">
-          <div v-for="item in summaryData" :key="item.key" class="summary-item">
+          <div class="summary-column">
+            <div class="summary-item compact">
+              <div class="summary-label">
+                <i class="pi pi-gauge"></i>
+                Remaining
+              </div>
+              <div :class="['summary-value', { 'fuel-critical': fuelData.current_fuel_level < fuelData.average_burn }]">
+                {{ formatFuelValue(fuelData.current_fuel_level) }}
+              </div>
+            </div>
+            <div class="summary-item compact">
+              <div class="summary-label">
+                <i class="pi pi-calculator"></i>
+                Avg Burn
+              </div>
+              <div class="summary-value">
+                {{ formatFuelValue(fuelData.average_burn) }}
+              </div>
+            </div>
+          </div>
+          <div class="summary-item history-item">
             <div class="summary-label">
-              <i :class="getSummaryIcon(item.key)"></i>
-              {{ item.label }}
+              <i class="pi pi-chart-bar"></i>
+              Recent Consumption
             </div>
-            <div :class="['summary-value', { 'fuel-critical': isCritical(item.key) }]">
-              {{ formatValue(item.value, item.key) }}
+            <div class="burn-chart" v-if="burnChartData.length > 0">
+              <div class="chart-bars">
+                <div
+                  v-for="(bar, index) in burnChartData"
+                  :key="index"
+                  class="chart-bar-container"
+                >
+                  <div class="bar-value">{{ bar.displayValue }}</div>
+                  <div class="bar-wrapper">
+                    <div
+                      class="bar"
+                      :style="{ height: bar.height + '%' }"
+                      :class="{ 'bar-high': bar.isHigh, 'bar-low': bar.isLow }"
+                    ></div>
+                  </div>
+                  <div class="bar-label">{{ bar.label }}</div>
+                </div>
+              </div>
             </div>
+            <div v-else class="summary-value">No data</div>
           </div>
         </div>
 
@@ -237,13 +274,41 @@ const formatFuelValue = (value) => {
     ? `${convertFuel(value).toFixed(2)}${getFuelUnit()}`
     : value;
 };
+
+const formatBurnHistory = (value) => {
+  return Array.isArray(value)
+    ? value.map(v => convertFuel(v).toFixed(2)).join(', ') + getFuelUnit()
+    : value;
+};
+
+const burnChartData = computed(() => {
+  const history = fuelData.value.burn_history;
+  if (!Array.isArray(history) || history.length === 0) return [];
+
+  const convertedValues = history.map(v => convertFuel(v));
+  const minVal = Math.min(...convertedValues);
+  const maxVal = Math.max(...convertedValues);
+  const range = maxVal - minVal || 1;
+
+  return convertedValues.map((value, index) => {
+    const heightPercent = ((value - minVal) / range) * 70 + 30;
+    return {
+      value,
+      displayValue: value.toFixed(2),
+      height: heightPercent,
+      label: `-${index + 1}`,
+      isHigh: value === maxVal && convertedValues.length > 1,
+      isLow: value === minVal && convertedValues.length > 1
+    };
+  });
+});
 </script>
 
 <style scoped>
 .fuel-container {
-  max-width: 800px;
-  margin: 20px auto;
-  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .fuel-card {
@@ -266,7 +331,7 @@ const formatFuelValue = (value) => {
 .fuel-card :deep(.p-card-title) {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   color: white;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 16px 16px 0 0;
   margin: 0;
 }
@@ -276,26 +341,26 @@ const formatFuelValue = (value) => {
 }
 
 .fuel-card :deep(.p-card-content) {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 1.5rem;
+  gap: 0.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
 .card-header-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card-header i {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
 }
 
 .view-toggle-btn {
@@ -303,45 +368,117 @@ const formatFuelValue = (value) => {
 }
 
 .summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.summary-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 90px;
 }
 
 .summary-item {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1rem;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+  background: var(--filter-content-bg, #f8f9fa);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  flex: 1;
 }
 
-.summary-item:hover {
-  border-color: #f093fb;
-  box-shadow: 0 4px 12px rgba(240, 147, 251, 0.2);
-  transform: translateY(-2px);
+.summary-item.compact {
+  padding: 0.3rem 0.5rem;
+}
+
+.summary-item.history-item {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.burn-chart {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.chart-bars {
+  display: flex;
+  gap: 0.3rem;
+  align-items: flex-end;
+  height: 50px;
+}
+
+.chart-bar-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.bar-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary, #2c3e50);
+  font-family: monospace;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.bar-wrapper {
+  width: 100%;
+  height: 35px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bar {
+  width: 80%;
+  max-width: 20px;
+  background: linear-gradient(180deg, #f5576c 0%, #f093fb 100%);
+  border-radius: 2px 2px 0 0;
+  transition: height 0.3s ease;
+}
+
+.bar.bar-high {
+  background: linear-gradient(180deg, #dc3545 0%, #f5576c 100%);
+}
+
+.bar.bar-low {
+  background: linear-gradient(180deg, #28a745 0%, #5cb85c 100%);
+}
+
+.bar-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6c757d;
+  margin-top: 2px;
 }
 
 .summary-label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
+  gap: 0.3rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #495057;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .summary-label i {
   color: #f5576c;
-  font-size: 1.1rem;
+  font-size: 0.85rem;
 }
 
 .summary-value {
-  font-size: 1.3rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--text-primary, #2c3e50);
   font-family: monospace;
 }
 
@@ -361,25 +498,22 @@ const formatFuelValue = (value) => {
 
 .toggle-container {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 12px;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background: var(--filter-content-bg, #f8f9fa);
+  border-radius: 8px;
 }
 
 .toggle-btn {
   flex: 1;
   font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.toggle-btn:hover {
-  transform: translateY(-2px);
+  font-size: 0.8rem;
+  padding: 0.4rem 0.6rem;
 }
 
 .toggle-btn.active {
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
 }
 
 .fuel-table {
@@ -396,7 +530,7 @@ const formatFuelValue = (value) => {
 
 .laps-value {
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   color: #2c3e50;
 }
 
@@ -464,24 +598,24 @@ const formatFuelValue = (value) => {
 .fuel-target {
   font-family: monospace;
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   color: #28a745;
 }
 
 :deep(.p-datatable) {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
 }
 
 :deep(.p-datatable .p-datatable-thead > tr > th) {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  padding: 0.875rem;
+  padding: 0.5rem 0.75rem;
   font-weight: 600;
   color: #2c3e50;
   border-bottom: 2px solid #dee2e6;
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr > td) {
-  padding: 0.875rem;
+  padding: 0.5rem 0.75rem;
 }
 
 

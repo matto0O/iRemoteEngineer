@@ -163,7 +163,7 @@ const labels = {
 };
 
 const formatTemp = (value) => {
-  return typeof value === 'number' ? value.toFixed(1) : '0.0';
+  return typeof value === 'number' ? Math.round(value) : '0';
 };
 
 const formatValue = (value, key) => {
@@ -176,7 +176,7 @@ const formatValue = (value, key) => {
   } else if (key === 'declared_wet') {
     return value ? 'Yes' : 'No';
   }
-  return typeof value === 'number' ? value.toFixed(2) : value;
+  return typeof value === 'number' ? Math.round(value) : value;
 };
 
 const isAlert = (key) => {
@@ -211,9 +211,9 @@ const tableData = computed(() => {
 
 <style scoped>
 .weather-container {
-  max-width: 1000px;
-  margin: 20px auto;
-  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .weather-card {
@@ -236,7 +236,7 @@ const tableData = computed(() => {
 .weather-card :deep(.p-card-title) {
   background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
   color: white;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 16px 16px 0 0;
   margin: 0;
 }
@@ -246,26 +246,26 @@ const tableData = computed(() => {
 }
 
 .weather-card :deep(.p-card-content) {
-  padding: 1.5rem;
+  padding: 0.75rem;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 1.5rem;
+  gap: 0.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
 .card-header-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card-header i {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
 }
 
 .view-toggle-btn {
@@ -273,38 +273,37 @@ const tableData = computed(() => {
 }
 
 .weather-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0;
 }
 
 .weather-item {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1.25rem;
+  background: var(--filter-content-bg, #f8f9fa);
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
   transition: all 0.3s ease;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
 }
 
 .weather-item:hover {
   border-color: #a8edea;
-  box-shadow: 0 4px 12px rgba(168, 237, 234, 0.3);
-  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(168, 237, 234, 0.3);
 }
 
 .weather-icon {
-  width: 50px;
-  height: 50px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 0.7rem;
   color: white;
   flex-shrink: 0;
 }
@@ -319,25 +318,25 @@ const tableData = computed(() => {
 }
 
 .weather-label {
-  font-size: 0.85rem;
+  font-size: 0.65rem;
   font-weight: 600;
   color: #6c757d;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .weather-value {
-  font-size: 1.5rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  color: #2c3e50;
-  line-height: 1.2;
+  color: var(--text-primary, #2c3e50);
+  line-height: 1.1;
 }
 
 .weather-subvalue {
-  font-size: 0.85rem;
+  font-size: 0.65rem;
   color: #6c757d;
-  margin-top: 0.25rem;
+  margin-top: 0;
 }
 
 .weather-alert {

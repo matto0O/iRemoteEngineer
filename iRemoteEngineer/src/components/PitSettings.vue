@@ -18,117 +18,91 @@
         </div>
       </template>
       <template #content>
-        <div class="settings-grid">
-          <!-- Fuel Section -->
-          <div class="section fuel-section">
-            <div class="section-header">
-              <i class="pi pi-bolt"></i>
-              <h4>Fuel</h4>
-            </div>
-            <div class="section-content">
-              <div class="fuel-controls">
-                <div class="fuel-input-group">
-                  <label for="fuel">Amount</label>
-                  <InputNumber
-                    id="fuel"
-                    v-model="fuelAmount"
-                    :disabled="!isRefueling"
-                    mode="decimal"
-                    showButtons
-                    :step="1"
-                    :min="1"
-                    :max="200"
-                    :suffix="' ' + getFuelUnit()"
-                    class="fuel-input"
-                  />
-                </div>
-                <Button
-                  :label="isRefueling ? 'Refueling' : 'Not Refueling'"
-                  :icon="isRefueling ? 'pi pi-check' : 'pi pi-times'"
-                  :class="isRefueling ? 'p-button-success toggle-btn' : 'p-button-secondary toggle-btn'"
-                  @click="toggleRefueling"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Tyres Section -->
-          <div class="section tyres-section">
-            <div class="section-header">
-              <i class="pi pi-circle"></i>
-              <h4>Tyres</h4>
-            </div>
-            <div class="section-content">
-              <div class="tyre-grid">
-                <Button
-                  label="FL"
-                  :icon="tyreStatus.frontLeft ? 'pi pi-check' : ''"
-                  :class="tyreStatus.frontLeft ? 'p-button-info tyre-btn active' : 'p-button-outlined tyre-btn'"
-                  @click="toggleTyre('frontLeft')"
-                />
-                <Button
-                  label="FR"
-                  :icon="tyreStatus.frontRight ? 'pi pi-check' : ''"
-                  :class="tyreStatus.frontRight ? 'p-button-info tyre-btn active' : 'p-button-outlined tyre-btn'"
-                  @click="toggleTyre('frontRight')"
-                />
-                <Button
-                  label="RL"
-                  :icon="tyreStatus.rearLeft ? 'pi pi-check' : ''"
-                  :class="tyreStatus.rearLeft ? 'p-button-info tyre-btn active' : 'p-button-outlined tyre-btn'"
-                  @click="toggleTyre('rearLeft')"
-                />
-                <Button
-                  label="RR"
-                  :icon="tyreStatus.rearRight ? 'pi pi-check' : ''"
-                  :class="tyreStatus.rearRight ? 'p-button-info tyre-btn active' : 'p-button-outlined tyre-btn'"
-                  @click="toggleTyre('rearRight')"
-                />
-              </div>
-              <div class="tyre-options">
-                <Button
-                  label="All Tyres"
-                  icon="pi pi-sync"
-                  class="p-button-secondary p-button-sm"
-                  @click="toggleAllTyres"
-                />
-                <Button
-                  :label="isWetTyres ? 'Wet' : 'Dry'"
-                  :icon="isWetTyres ? 'pi pi-cloud' : 'pi pi-sun'"
-                  :class="isWetTyres ? 'p-button-info p-button-sm' : 'p-button-secondary p-button-sm'"
-                  @click="toggleTyreType"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Fast Repair Section -->
-          <div class="section repair-section">
-            <div class="section-header">
-              <i class="pi pi-cog"></i>
-              <h4>Fast Repair</h4>
-            </div>
-            <div class="section-content">
+        <div class="compact-grid">
+          <!-- Fuel Row -->
+          <div class="grid-item fuel-item">
+            <span class="item-label"><i class="pi pi-bolt"></i> Fuel</span>
+            <div class="item-controls">
+              <InputNumber
+                id="fuel"
+                v-model="fuelAmount"
+                :disabled="!isRefueling"
+                mode="decimal"
+                showButtons
+                :step="1"
+                :min="1"
+                :max="200"
+                :suffix="' ' + getFuelUnit()"
+                class="fuel-input-compact"
+              />
               <Button
-                :label="fastRepair ? 'Using Fast Repair' : 'No Fast Repair'"
-                :icon="fastRepair ? 'pi pi-check-circle' : 'pi pi-times-circle'"
-                :class="fastRepair ? 'p-button-warning toggle-btn' : 'p-button-outlined toggle-btn'"
+                :label="isRefueling ? 'On' : 'Off'"
+                :icon="isRefueling ? 'pi pi-check' : 'pi pi-times'"
+                :class="isRefueling ? 'p-button-success p-button-sm' : 'p-button-secondary p-button-sm'"
+                @click="toggleRefueling"
+              />
+            </div>
+          </div>
+
+          <!-- Tyres Row -->
+          <div class="grid-item tyres-item">
+            <span class="item-label"><i class="pi pi-circle"></i> Tyres</span>
+            <div class="item-controls tyre-controls">
+              <Button
+                label="FL"
+                :class="tyreStatus.frontLeft ? 'p-button-info p-button-sm tyre-btn' : 'p-button-outlined p-button-sm tyre-btn'"
+                @click="toggleTyre('frontLeft')"
+              />
+              <Button
+                label="FR"
+                :class="tyreStatus.frontRight ? 'p-button-info p-button-sm tyre-btn' : 'p-button-outlined p-button-sm tyre-btn'"
+                @click="toggleTyre('frontRight')"
+              />
+              <Button
+                label="RL"
+                :class="tyreStatus.rearLeft ? 'p-button-info p-button-sm tyre-btn' : 'p-button-outlined p-button-sm tyre-btn'"
+                @click="toggleTyre('rearLeft')"
+              />
+              <Button
+                label="RR"
+                :class="tyreStatus.rearRight ? 'p-button-info p-button-sm tyre-btn' : 'p-button-outlined p-button-sm tyre-btn'"
+                @click="toggleTyre('rearRight')"
+              />
+              <Button
+                label="All"
+                icon="pi pi-sync"
+                class="p-button-secondary p-button-sm"
+                @click="toggleAllTyres"
+              />
+              <Button
+                :label="isWetTyres ? 'Wet' : 'Dry'"
+                :class="isWetTyres ? 'p-button-info p-button-sm' : 'p-button-secondary p-button-sm'"
+                @click="toggleTyreType"
+              />
+            </div>
+          </div>
+
+          <!-- Fast Repair Row -->
+          <div class="grid-item">
+            <span class="item-label"><i class="pi pi-cog"></i> Fast Repair</span>
+            <div class="item-controls">
+              <Button
+                :label="fastRepair ? 'Yes' : 'No'"
+                :icon="fastRepair ? 'pi pi-check' : 'pi pi-times'"
+                :class="fastRepair ? 'p-button-warning p-button-sm' : 'p-button-outlined p-button-sm'"
                 @click="toggleFastRepair"
               />
             </div>
           </div>
 
-          <!-- Windshield Tearoff Section -->
-          <div class="section windshield-section">
-            <div class="section-header">
-              <i class="pi pi-tablet"></i>
-              <h4>Windshield Tearoff</h4>
-            </div>
-            <div class="section-content">
+          <!-- Windshield Row -->
+          <div class="grid-item">
+            <span class="item-label"><i class="pi pi-tablet"></i> Tearoff</span>
+            <div class="item-controls">
               <Button
-                :label="windshieldWiper ? 'Tearoff Windshield' : 'No Tearoff'"
-                :icon="windshieldWiper ? 'pi pi-check-circle' : 'pi pi-times-circle'"
-                :class="windshieldWiper ? 'p-button-warning toggle-btn' : 'p-button-outlined toggle-btn'"
+                :label="windshieldWiper ? 'Yes' : 'No'"
+                :icon="windshieldWiper ? 'pi pi-check' : 'pi pi-times'"
+                :class="windshieldWiper ? 'p-button-warning p-button-sm' : 'p-button-outlined p-button-sm'"
                 @click="toggleWindshieldWiper"
               />
             </div>
@@ -137,10 +111,6 @@
 
         <!-- Command Preview Box -->
         <div v-if="showCommandPreview" class="command-preview">
-          <div class="preview-header">
-            <i class="pi pi-code"></i>
-            <span>Command Preview</span>
-          </div>
           <div class="preview-content">
             <code>{{ currentCommand }}</code>
           </div>
@@ -149,15 +119,15 @@
         <!-- Action Buttons -->
         <div class="action-buttons">
           <Button
-            label="Clear All"
+            label="Clear"
             icon="pi pi-refresh"
-            class="p-button-outlined p-button-danger clear-btn"
+            class="p-button-outlined p-button-danger p-button-sm"
             @click="clearSettings"
           />
           <Button
-            label="Send to Pit"
+            label="Send"
             icon="pi pi-send"
-            class="p-button-success send-btn"
+            class="p-button-success p-button-sm send-btn"
             @click="createCommand"
           />
         </div>
@@ -343,9 +313,9 @@ const createCommand = () => {
 
 <style scoped>
 .settings-panel {
-  max-width: 900px;
-  margin: 20px auto;
-  padding: 1rem;
+  width: 100%;
+  height: 100%;
+  padding: 0;
 }
 
 .pit-settings-card {
@@ -378,207 +348,125 @@ const createCommand = () => {
 }
 
 .pit-settings-card :deep(.p-card-content) {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  font-size: 1.5rem;
+  gap: 0.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
 .card-header-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .card-header i {
-  font-size: 1.75rem;
+  font-size: 1.25rem;
 }
 
 .preview-toggle-btn {
   flex-shrink: 0;
 }
 
-/* Command Preview */
-.command-preview {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  border: 2px solid #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+/* Compact Grid Layout */
+.compact-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
-.preview-header {
+.grid-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #667eea;
-  margin-bottom: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--filter-content-bg, #f8f9fa);
+  border-radius: 8px;
+  gap: 0.75rem;
 }
 
-.preview-header i {
-  font-size: 1rem;
+.item-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-primary, #2c3e50);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.item-label i {
+  color: #667eea;
+  font-size: 0.9rem;
+}
+
+.item-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tyre-controls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.fuel-input-compact {
+  width: 100px;
+}
+
+.fuel-input-compact :deep(.p-inputnumber-input) {
+  width: 60px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.tyre-btn {
+  min-width: 36px;
+  padding: 0.3rem 0.5rem !important;
+}
+
+/* Command Preview */
+.command-preview {
+  background: var(--filter-content-bg, #f8f9fa);
+  border-radius: 6px;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .preview-content {
   background: #2c3e50;
-  border-radius: 8px;
-  padding: 0.875rem 1rem;
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
   overflow-x: auto;
 }
 
 .preview-content code {
   font-family: 'Courier New', monospace;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   color: #4ade80;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.settings-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.section {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1.25rem;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-}
-
-.section:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
-  transform: translateY(-2px);
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid #e9ecef;
-}
-
-.section-header i {
-  color: #667eea;
-  font-size: 1.25rem;
-}
-
-.section-header h4 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.section-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-/* Fuel Section */
-.fuel-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.fuel-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.fuel-input-group label {
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.9rem;
-}
-
-.fuel-input {
-  width: 100%;
-}
-
-/* Tyres Section */
-.tyre-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-.tyre-btn {
-  font-weight: 600;
-  transition: all 0.2s ease;
-  min-height: 3rem;
-}
-
-.tyre-btn:hover {
-  transform: scale(1.05);
-}
-
-.tyre-btn.active {
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
-}
-
-.tyre-options {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-.tyre-options button {
-  flex: 1;
-}
-
-/* Toggle Buttons */
-.toggle-btn {
-  width: 100%;
-  font-weight: 600;
-  justify-content: center;
-  transition: all 0.2s ease;
-  min-height: 2.75rem;
-}
-
-.toggle-btn:hover {
-  transform: scale(1.02);
-}
-
 /* Action Buttons */
 .action-buttons {
   display: flex;
-  gap: 1rem;
-  padding-top: 1rem;
-  border-top: 2px solid #e9ecef;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color, #e9ecef);
 }
 
 .action-buttons button {
   flex: 1;
   font-weight: 600;
-  font-size: 1.1rem;
-  padding: 0.875rem;
-  transition: all 0.2s ease;
-}
-
-.clear-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
 .send-btn {
@@ -586,66 +474,26 @@ const createCommand = () => {
   border: none;
 }
 
-.send-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
-  background: linear-gradient(135deg, #218838 0%, #1aa179 100%);
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
-  .settings-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .action-buttons {
-    flex-direction: column;
-  }
-
-  .tyre-grid {
-    grid-template-columns: 1fr 1fr;
+  .tyre-controls {
+    justify-content: flex-start;
   }
 }
 
 /* PrimeVue Button Overrides */
 :deep(.p-button) {
-  border-radius: 8px;
-}
-
-:deep(.p-inputnumber) {
-  width: 100%;
+  border-radius: 6px;
 }
 
 :deep(.p-inputnumber-input) {
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 600;
 }
 
 /* Dark mode overrides */
-.dark-mode .section {
-  background: var(--card-bg);
-  border-color: var(--border-color);
-}
-
-.dark-mode .section:hover {
-  border-color: #667eea;
-}
-
-.dark-mode .section-header {
-  border-bottom-color: var(--border-color);
-}
-
-.dark-mode .section-header h4 {
-  color: var(--text-primary);
-}
-
-.dark-mode .fuel-input-group label {
-  color: var(--text-secondary);
-}
-
-.dark-mode .command-preview {
+.dark-mode .grid-item {
   background: var(--filter-content-bg);
-  border-color: var(--border-color);
 }
 
 .dark-mode .action-buttons {
