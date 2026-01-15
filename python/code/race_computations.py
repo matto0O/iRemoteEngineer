@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from time import sleep
 import schedule
 import logging
+from math import ceil
 
 from utils import Car, State
 from kinesis_producer import KinesisProducer
@@ -405,7 +406,7 @@ def is_towed():
     if tow_time > 0 and not state.computation_helpers["being_towed"]:
         # just started towing
         state.computation_helpers["being_towed"] = True
-        send_data("tow", tow_time)
+        send_data("tow", ceil(tow_time))
     elif tow_time == 0 and state.computation_helpers["being_towed"]:
         # finished towing
         state.computation_helpers["being_towed"] = False
@@ -462,9 +463,20 @@ def execute_commands(topic, payload, **kwargs):
             executed.append(command)
         elif "fuel" in command:
             try:
-                fuel = int(command.split(".")[1])
-                ir.pit_command(PitCommandMode.fuel, fuel)
-                executed.append(f"fuel.{fuel}")
+                fuel = command.split(".")[1]
+                if fuel.endswith("l"):
+                    fuel_amount = fuel[:-1]
+                elif fuel.endswith("gal"):
+                    fuel_amount = fuel[:-3]
+                    fuel_amount = ceil(float(fuel_amount) * 3.78541)
+                elif fuel.endswith("kg"):
+                    fuel_amount = fuel[:-2]
+                    fuel_amount = ceil(float(fuel_amount) / 0.745)  # Convert kg to liters (approximation)
+                else:
+                    raise ValueError("Invalid fuel unit")
+
+                ir.pit_command(PitCommandMode.fuel, int(fuel_amount))
+                executed.append(f"fuel.{fuel_amount}l")
             except (ValueError, IndexError):
                 logger.error(f"Invalid fuel command: {command}")
         elif "tc" in command:
