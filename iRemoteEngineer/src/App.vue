@@ -10,7 +10,7 @@
       <div class="compact-header">
         <h1>iRacing Data Streams</h1>
         <div class="controls">
-          <Button
+          <PrimeButton
             :icon="isDarkMode ? 'pi pi-sun' : 'pi pi-moon'"
             @click="toggleDarkMode"
             :label="isDarkMode ? 'Light' : 'Dark'"
@@ -39,7 +39,7 @@
               style="width: 100%"
             />
           </span>
-          <Button 
+          <PrimeButton 
             :label="showFilters ? 'Hide' : 'Filters'" 
             icon="pi pi-filter"
             :severity="showFilters ? 'primary' : 'secondary'"
@@ -143,7 +143,7 @@
         No streams match your filters
       </div>
       
-      <Dialog 
+      <PrimeDialog 
         :visible="showModal" 
         @update:visible="closeModal"
         header="Enter Passcode" 
@@ -170,15 +170,15 @@
         </div>
         
         <template #footer>
-          <Button label="Cancel" severity="secondary" @click="closeModal" :disabled="isAuthenticating" />
-          <Button 
+          <PrimeButton label="Cancel" severity="secondary" @click="closeModal" :disabled="isAuthenticating" />
+          <PrimeButton 
             label="Submit" 
             @click="handleSubmit" 
             :loading="isAuthenticating"
             :disabled="isAuthenticating"
           />
         </template>
-      </Dialog>
+      </PrimeDialog>
     </div>
     <EngineerPanel
       v-else
@@ -206,11 +206,11 @@ export default {
   name: 'App',
   components: {
     Card,
-    Button: PrimeButton,
+    PrimeButton,
     InputText,
     Dropdown,
     RadioButton,
-    Dialog: PrimeDialog,
+    PrimeDialog,
     Password,
     EngineerPanel
   },
