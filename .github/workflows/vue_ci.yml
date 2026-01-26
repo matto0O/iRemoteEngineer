@@ -1,0 +1,51 @@
+name: CI - Vue Lint
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'iRemoteEngineer/**.vue'
+      - 'iRemoteEngineer/**.js'
+      - 'iRemoteEngineer/**.ts'
+      - 'iRemoteEngineer/**.json'
+      - 'iRemoteEngineer/**.css'
+      - 'iRemoteEngineer/**.html'
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - 'iRemoteEngineer/**.vue'
+      - 'iRemoteEngineer/**.js'
+      - 'iRemoteEngineer/**.ts'
+      - 'iRemoteEngineer/**.json'
+      - 'iRemoteEngineer/**.css'
+      - 'iRemoteEngineer/**.html'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: iRemoteEngineer
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: iRemoteEngineer/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint:eslint
+
+      - name: Run oxlint
+        run: npm run lint:oxlint
