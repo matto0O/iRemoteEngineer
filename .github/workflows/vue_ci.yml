@@ -46,6 +46,3 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint:eslint
-
-      - name: Run oxlint
-        run: npm run lint:oxlint

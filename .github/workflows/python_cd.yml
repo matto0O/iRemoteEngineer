@@ -12,9 +12,9 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  # Build job runs on all branches to catch errors early
+  build:
     runs-on: windows-latest
-    # Only run if CI succeeded
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
@@ -55,14 +56,41 @@ jobs:
               sys.exit(1)
           "
 
+      - name: Build with PyInstaller
+        working-directory: python
+        run: |
+          pyinstaller iRemoteEngineer.spec
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iRemoteEngineer-exe
+          path: python/dist/iRemoteEngineer.exe
+          retention-days: 1
+
+  # Release job only runs on main branch after successful build
+  release:
+    runs-on: windows-latest
+    needs: build
+    if: ${{ github.event.workflow_run.head_branch == 'main' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: iRemoteEngineer-exe
+          path: python/dist
+
       - name: Determine version bump type
         id: version_type
         run: |
-          # Check if this is from a PR merge
-          $headBranch = "${{ github.event.workflow_run.head_branch }}"
           $eventName = "${{ github.event.workflow_run.event }}"
-
-          Write-Host "Head branch: $headBranch"
           Write-Host "Event name: $eventName"
 
           # If the workflow was triggered by a PR event, bump minor version
@@ -118,11 +146,6 @@ jobs:
           git add VERSION
           git commit -m "Bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]" || echo "No changes to commit"
           git push
-
-      - name: Build with PyInstaller
-        working-directory: python
-        run: |
-          pyinstaller iRemoteEngineer.spec
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
