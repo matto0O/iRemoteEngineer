@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import json
+import logging
 from pathlib import Path
 
 
@@ -125,7 +126,7 @@ def load_intervals():
         else:
             return DEFAULT_SETTINGS.copy()
     except Exception as e:
-        print(f"Error loading settings: {e}")
+        logging.error(f"Error loading settings: {e}")
         return DEFAULT_SETTINGS.copy()
 
 
@@ -139,7 +140,7 @@ def save_settings(settings):
             json.dump(settings, f, indent=4)
         return True
     except Exception as e:
-        print(f"Error saving settings: {e}")
+        logging.error(f"Error saving settings: {e}")
         return False
 
 

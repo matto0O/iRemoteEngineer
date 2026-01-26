@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def print_callback(topic, payload, **kwargs):
-    print(f"Received message on topic {topic}: {payload}")
+    logging.info(f"Received message on topic {topic}: {payload}")
 
 def create_lobby(lobby_name, passcode, pit_stop_settings, callback=print_callback, **additional_fields):
     """

@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import json
+import logging
 from pathlib import Path
 
 # Configuration file path
@@ -25,7 +26,7 @@ def load_pit_settings():
         else:
             return DEFAULT_SETTINGS.copy()
     except Exception as e:
-        print(f"Error loading pit settings: {e}")
+        logging.error(f"Error loading pit settings: {e}")
         return DEFAULT_SETTINGS.copy()
 
 
@@ -39,7 +40,7 @@ def save_pit_settings(settings):
             json.dump(settings, f, indent=4)
         return True
     except Exception as e:
-        print(f"Error saving pit settings: {e}")
+        logging.error(f"Error saving pit settings: {e}")
         return False
 
 

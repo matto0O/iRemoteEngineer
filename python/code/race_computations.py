@@ -372,7 +372,7 @@ def get_session_info():
         "team_name": state.session_info.get("team_name", None),
         "player_car_number": state.session_info.get("player_car_number", None)
     }
-    for key in ["series_id", "session_id", "subsession_id", "track_name", "track_config", "event_type"]:
+    for key in ["series_id", "session_id", "subsession_id", "track_name", "track_config", "event_type", "session_type"]:
         if data[key] != state.session_info[key]:
             logger.info(f"New session: {data['track_name']} - {data['event_type']}")
             state.reset_state()

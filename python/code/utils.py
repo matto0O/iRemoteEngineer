@@ -1,5 +1,6 @@
 from enum import Enum
 import time
+import logging
 from numpy import zeros
 
 class MyQueue:
@@ -123,7 +124,7 @@ class TaskScheduler:
                         task['func']()
                     task['last_run'] = self.current_time
                 except Exception as e:
-                    print(f"Error running task {name}: {e}")
+                    logging.error(f"Error running task {name}: {e}")
 
 class Config:
     __slots__ = ['task_intervals', 'loop_interval', 'exposed_port', 'fuel_strategy_laps']
@@ -161,6 +162,6 @@ def time_it(func):
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
-        print(f"Function {func.__name__} took {end_time - start_time:.2f} seconds")
+        logging.debug(f"Function {func.__name__} took {end_time - start_time:.2f} seconds")
         return result
     return wrapper
