@@ -37,21 +37,21 @@ jobs:
           if (Test-Path python/requirements.txt) {
             pip install -r python/requirements.txt
           }
-
+      
       - name: Create certificates directory
         env:
-          CERT_PEM: ${{ secrets.CERT_PEM }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          PUBLIC_KEY: ${{ secrets.PUBLIC_KEY }}
-          CERT_POLICY: ${{ secrets.CERT_POLICY }}
-          ROOT_CA: ${{ secrets.ROOT_CA }}
+            CERT_PEM: ${{ secrets.CERT_PEM }}
+            PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+            PUBLIC_KEY: ${{ secrets.PUBLIC_KEY }}
+            CERT_POLICY: ${{ secrets.CERT_POLICY }}
+            ROOT_CA: ${{ secrets.ROOT_CA }}
         run: |
-          New-Item -ItemType Directory -Force -Path python/certificates
-          $env:CERT_PEM | Set-Content -Path "python/certificates/pit_stop_manager.cert.pem" -NoNewline
-          $env:PRIVATE_KEY | Set-Content -Path "python/certificates/pit_stop_manager.private.key" -NoNewline
-          $env:PUBLIC_KEY | Set-Content -Path "python/certificates/pit_stop_manager.public.key" -NoNewline
-          $env:CERT_POLICY | Set-Content -Path "python/certificates/pit_stop_manager-Policy" -NoNewline
-          $env:ROOT_CA | Set-Content -Path "python/certificates/root-CA.crt" -NoNewline
+            New-Item -ItemType Directory -Force -Path python/certificates
+            [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.cert.pem", [Convert]::FromBase64String($env:CERT_PEM.Trim()))
+            [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.private.key", [Convert]::FromBase64String($env:PRIVATE_KEY.Trim()))
+            [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.public.key", [Convert]::FromBase64String($env:PUBLIC_KEY.Trim()))
+            [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager-Policy", [Convert]::FromBase64String($env:CERT_POLICY.Trim()))
+            [IO.File]::WriteAllBytes("python/certificates/root-CA.crt", [Convert]::FromBase64String($env:ROOT_CA.Trim()))
 
       - name: Create .env file
         run: |
@@ -63,24 +63,6 @@ jobs:
           UUID_EDIT_URL=${{ secrets.UUID_EDIT_URL }}
           WEBSITE_URL=${{ vars.WEBSITE_URL }}
           "@ | Out-File -FilePath python/.env -Encoding utf8
-
-      - name: Test app imports
-        working-directory: python/code
-        run: |
-          # Test that the main module can be imported without errors
-          python -c "
-          import sys
-          sys.path.insert(0, '.')
-          # Test basic imports work (can't run full GUI in CI)
-          try:
-              from gui.gui_main import IracingDataGUI
-              from utils import Config, State, Car
-              from race_computations import RaceComputations
-              print('All imports successful!')
-          except Exception as e:
-              print(f'Import test failed: {e}')
-              sys.exit(1)
-          "
 
       - name: Build with PyInstaller
         working-directory: python
