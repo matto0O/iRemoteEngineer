@@ -38,6 +38,44 @@ jobs:
             pip install -r python/requirements.txt
           }
 
+      - name: Create certificates directory
+        run: |
+          New-Item -ItemType Directory -Force -Path python/certificates
+          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.cert.pem", [Convert]::FromBase64String("${{ secrets.CERT_PEM }}"))
+          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.private.key", [Convert]::FromBase64String("${{ secrets.PRIVATE_KEY }}"))
+          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.public.key", [Convert]::FromBase64String("${{ secrets.PUBLIC_KEY }}"))
+          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager-Policy", [Convert]::FromBase64String("${{ secrets.CERT_POLICY }}"))
+          [IO.File]::WriteAllBytes("python/certificates/root-CA.crt", [Convert]::FromBase64String("${{ secrets.ROOT_CA }}"))
+
+      - name: Create .env file
+        run: |
+          @"
+          IDENTITY_POOL_ID=${{ secrets.IDENTITY_POOL_ID }}
+          CREATE_LOBBY_URL=${{ secrets.CREATE_LOBBY_URL }}
+          IOT_TOPIC_URL=${{ secrets.IOT_TOPIC_URL }}
+          LOBBY_AUTH_URL=${{ secrets.LOBBY_AUTH_URL }}
+          UUID_EDIT_URL=${{ secrets.UUID_EDIT_URL }}
+          WEBSITE_URL=${{ vars.WEBSITE_URL }}
+          "@ | Out-File -FilePath python/.env -Encoding utf8
+
+      - name: Test app imports
+        working-directory: python/code
+        run: |
+          # Test that the main module can be imported without errors
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          # Test basic imports work (can't run full GUI in CI)
+          try:
+              from gui.gui_main import IracingDataGUI
+              from utils import Config, State, Car
+              from race_computations import RaceComputations
+              print('All imports successful!')
+          except Exception as e:
+              print(f'Import test failed: {e}')
+              sys.exit(1)
+          "
+
       - name: Build with PyInstaller
         working-directory: python
         run: |
