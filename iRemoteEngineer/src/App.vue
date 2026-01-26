@@ -334,7 +334,7 @@ export default {
     },
     async fetchStreams() {
       try {
-        const response = await fetch('https://mbwbbsdgq7b7fd72nfjdhquqb40upvpx.lambda-url.eu-north-1.on.aws');
+        const response = await fetch(import.meta.env.VITE_LOBBIES_URL);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -401,7 +401,7 @@ export default {
       }
       
       try {
-        const authEndpoint = 'https://r6jbq545tjnzk3clklpvyisnyu0gushh.lambda-url.eu-north-1.on.aws/';
+        const authEndpoint = import.meta.env.VITE_LOBBY_AUTH_URL;
         
         const response = await fetch(authEndpoint, {
           method: 'POST',

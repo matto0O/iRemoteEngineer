@@ -42,7 +42,7 @@ export default function useWebSocketConnection(lobby_name = '', authToken = '', 
       return null
     }
 
-    const ws = new WebSocket('wss://ehfaberh2g.execute-api.eu-north-1.amazonaws.com/production/')
+    const ws = new WebSocket(import.meta.env.VITE_WEBSOCKET_URL)
     
     ws.onopen = () => {
       isConnected.value = true
