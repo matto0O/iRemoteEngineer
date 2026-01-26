@@ -157,7 +157,7 @@ const props = defineProps({
 
 console.log("pit", props.authToken)
 const { sendCommand } = useRaceData(props.socket, props.authToken)
-const { convertFuel, getFuelUnit, getFuelCommandSuffix } = useUnits()
+const { getFuelUnit, getFuelCommandSuffix } = useUnits()
 
 // Load saved preference from localStorage
 const loadShowCommandPreview = () => {

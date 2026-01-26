@@ -170,13 +170,13 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['back-to-lobby']);
+defineEmits(['back-to-lobby']);
 
 console.log('EngineerPanel props:', props);
 
 const useMockMode = computed(() => props.use_mock_mode);
 
-const { socket, authToken, isConnected, connectionError, connect } = useWebSocketConnection(
+const { socket, isConnected, connectionError, connect } = useWebSocketConnection(
   props.lobby_name,
   props.auth_token,
   props.use_mock_mode

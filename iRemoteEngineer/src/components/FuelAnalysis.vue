@@ -181,26 +181,6 @@ const fuelData = computed(() => {
     };
 });
 
-const summaryData = computed(() => {
-  return [
-    {
-      key: 'current_fuel_level',
-      label: 'Fuel Remaining',
-      value: fuelData.value.current_fuel_level
-    },
-    {
-      key: 'burn_history',
-      label: 'Recent Consumption History',
-      value: fuelData.value.burn_history
-    },
-    {
-      key: 'average_burn',
-      label: 'Average Consumption',
-      value: fuelData.value.average_burn
-    }
-  ];
-});
-
 const lapFuelPairs = computed(() => {
   const prefix = viewMode.value === 'average' ? 'avg' : 'last';
   const consumptionType = viewMode.value === 'average'
@@ -242,42 +222,9 @@ const lapFuelPairs = computed(() => {
   ];
 });
 
-const getSummaryIcon = (key) => {
-  const icons = {
-    current_fuel_level: 'pi pi-gauge',
-    burn_history: 'pi pi-chart-bar',
-    average_burn: 'pi pi-calculator'
-  };
-  return icons[key] || 'pi pi-info-circle';
-};
-
-const isCritical = (key) => {
-    if (key === 'current_fuel_level' && fuelData.value.current_fuel_level < fuelData.value.average_burn) {
-        return true;
-    }
-    return false;
-};
-
-const formatValue = (value, key) => {
-  if (key === 'burn_history') {
-    return Array.isArray(value)
-      ? value.map(v => convertFuel(v).toFixed(2)).join(', ') + getFuelUnit()
-      : value;
-  }
-  return typeof value === 'number'
-    ? `${convertFuel(value).toFixed(2)}${getFuelUnit()}`
-    : value;
-};
-
 const formatFuelValue = (value) => {
   return typeof value === 'number'
     ? `${convertFuel(value).toFixed(2)}${getFuelUnit()}`
-    : value;
-};
-
-const formatBurnHistory = (value) => {
-  return Array.isArray(value)
-    ? value.map(v => convertFuel(v).toFixed(2)).join(', ') + getFuelUnit()
     : value;
 };
 

@@ -192,11 +192,11 @@
 
 <script>
 import Card from 'primevue/card';
-import Button from 'primevue/button';
+import PrimeButton from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Dropdown from 'primevue/dropdown';
 import RadioButton from 'primevue/radiobutton';
-import Dialog from 'primevue/dialog';
+import PrimeDialog from 'primevue/dialog';
 import Password from 'primevue/password';
 import EngineerPanel from './components/EngineerPanel.vue';
 import { useDarkMode } from './composables/useDarkMode.js';
@@ -206,11 +206,11 @@ export default {
   name: 'App',
   components: {
     Card,
-    Button,
+    Button: PrimeButton,
     InputText,
     Dropdown,
     RadioButton,
-    Dialog,
+    Dialog: PrimeDialog,
     Password,
     EngineerPanel
   },
