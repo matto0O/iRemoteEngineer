@@ -47,11 +47,11 @@ jobs:
           ROOT_CA: ${{ secrets.ROOT_CA }}
         run: |
           New-Item -ItemType Directory -Force -Path python/certificates
-          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.cert.pem", [Convert]::FromBase64String($env:CERT_PEM))
-          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.private.key", [Convert]::FromBase64String($env:PRIVATE_KEY))
-          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.public.key", [Convert]::FromBase64String($env:PUBLIC_KEY))
-          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager-Policy", [Convert]::FromBase64String($env:CERT_POLICY))
-          [IO.File]::WriteAllBytes("python/certificates/root-CA.crt", [Convert]::FromBase64String($env:ROOT_CA))
+          $env:CERT_PEM | Set-Content -Path "python/certificates/pit_stop_manager.cert.pem" -NoNewline
+          $env:PRIVATE_KEY | Set-Content -Path "python/certificates/pit_stop_manager.private.key" -NoNewline
+          $env:PUBLIC_KEY | Set-Content -Path "python/certificates/pit_stop_manager.public.key" -NoNewline
+          $env:CERT_POLICY | Set-Content -Path "python/certificates/pit_stop_manager-Policy" -NoNewline
+          $env:ROOT_CA | Set-Content -Path "python/certificates/root-CA.crt" -NoNewline
 
       - name: Create .env file
         run: |
