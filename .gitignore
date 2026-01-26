@@ -7,7 +7,6 @@ main.spec
 */newdataset*
 data.py
 .env
-*.spec
 test*.py
 todo
 car_decoding_data.py
