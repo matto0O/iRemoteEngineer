@@ -39,13 +39,19 @@ jobs:
           }
 
       - name: Create certificates directory
+        env:
+          CERT_PEM: ${{ secrets.CERT_PEM }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PUBLIC_KEY: ${{ secrets.PUBLIC_KEY }}
+          CERT_POLICY: ${{ secrets.CERT_POLICY }}
+          ROOT_CA: ${{ secrets.ROOT_CA }}
         run: |
           New-Item -ItemType Directory -Force -Path python/certificates
-          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.cert.pem", [Convert]::FromBase64String("${{ secrets.CERT_PEM }}"))
-          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.private.key", [Convert]::FromBase64String("${{ secrets.PRIVATE_KEY }}"))
-          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.public.key", [Convert]::FromBase64String("${{ secrets.PUBLIC_KEY }}"))
-          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager-Policy", [Convert]::FromBase64String("${{ secrets.CERT_POLICY }}"))
-          [IO.File]::WriteAllBytes("python/certificates/root-CA.crt", [Convert]::FromBase64String("${{ secrets.ROOT_CA }}"))
+          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.cert.pem", [Convert]::FromBase64String($env:CERT_PEM))
+          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.private.key", [Convert]::FromBase64String($env:PRIVATE_KEY))
+          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager.public.key", [Convert]::FromBase64String($env:PUBLIC_KEY))
+          [IO.File]::WriteAllBytes("python/certificates/pit_stop_manager-Policy", [Convert]::FromBase64String($env:CERT_POLICY))
+          [IO.File]::WriteAllBytes("python/certificates/root-CA.crt", [Convert]::FromBase64String($env:ROOT_CA))
 
       - name: Create .env file
         run: |
