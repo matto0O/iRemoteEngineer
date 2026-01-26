@@ -1,0 +1,145 @@
+name: CD - Build and Release
+
+on:
+  workflow_run:
+    workflows: ["CI - Pylint"]
+    types:
+      - completed
+    branches:
+      - '**'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    # Only run if CI succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          if (Test-Path python/requirements.txt) {
+            pip install -r python/requirements.txt
+          }
+
+      - name: Test app imports
+        working-directory: python/code
+        run: |
+          # Test that the main module can be imported without errors
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          # Test basic imports work (can't run full GUI in CI)
+          try:
+              from gui.gui_main import IracingDataGUI
+              from utils import Config, State, Car
+              from race_computations import RaceComputations
+              print('All imports successful!')
+          except Exception as e:
+              print(f'Import test failed: {e}')
+              sys.exit(1)
+          "
+
+      - name: Determine version bump type
+        id: version_type
+        run: |
+          # Check if this is from a PR merge
+          $headBranch = "${{ github.event.workflow_run.head_branch }}"
+          $eventName = "${{ github.event.workflow_run.event }}"
+
+          Write-Host "Head branch: $headBranch"
+          Write-Host "Event name: $eventName"
+
+          # If the workflow was triggered by a PR event, bump minor version
+          # Otherwise (regular push), bump patch version
+          if ($eventName -eq "pull_request") {
+            echo "bump_type=minor" >> $env:GITHUB_OUTPUT
+          } else {
+            echo "bump_type=patch" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          # Read current version
+          $versionFile = "VERSION"
+          $currentVersion = Get-Content $versionFile -Raw
+          $currentVersion = $currentVersion.Trim()
+
+          Write-Host "Current version: $currentVersion"
+
+          # Parse version components
+          $versionParts = $currentVersion -split '\.'
+          $major = [int]$versionParts[0]
+          $minor = [int]$versionParts[1]
+          $patch = [int]$versionParts[2]
+
+          # Bump based on type
+          $bumpType = "${{ steps.version_type.outputs.bump_type }}"
+
+          if ($bumpType -eq "minor") {
+            $minor++
+            $patch = 0
+            Write-Host "Bumping minor version (PR merge)"
+          } else {
+            $patch++
+            Write-Host "Bumping patch version (commit)"
+          }
+
+          $newVersion = "$major.$minor.$patch"
+          Write-Host "New version: $newVersion"
+
+          # Write new version to file
+          $newVersion | Set-Content $versionFile -NoNewline
+
+          # Output for later steps
+          echo "new_version=$newVersion" >> $env:GITHUB_OUTPUT
+          echo "tag_name=v$newVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Commit version bump
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add VERSION
+          git commit -m "Bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]" || echo "No changes to commit"
+          git push
+
+      - name: Build with PyInstaller
+        working-directory: python
+        run: |
+          pyinstaller iRemoteEngineer.spec
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.bump_version.outputs.tag_name }}
+          name: Release ${{ steps.bump_version.outputs.new_version }}
+          body: |
+            ## iRemoteEngineer ${{ steps.bump_version.outputs.new_version }}
+
+            Automated release from commit ${{ github.event.workflow_run.head_sha }}
+
+            ### Changes
+            - Built from branch: ${{ github.event.workflow_run.head_branch }}
+            - Trigger: ${{ github.event.workflow_run.event }}
+          files: |
+            python/dist/iRemoteEngineer.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
