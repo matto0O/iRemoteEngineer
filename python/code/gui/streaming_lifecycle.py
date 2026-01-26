@@ -4,10 +4,23 @@ import requests
 import logging
 import os
 
-from race_computations import schedule_data_ingestion, run_jobs, ir, state, clear_jobs, execute_commands
-from lobby_connection import create_lobby as _create_lobby, join_lobby as _join_lobby, disconnect_all_iot
+from race_computations import (
+    schedule_data_ingestion,
+    run_jobs,
+    ir,
+    state,
+    clear_jobs,
+    execute_commands,
+)
+from lobby_connection import (
+    create_lobby as _create_lobby,
+    join_lobby as _join_lobby,
+    disconnect_all_iot,
+)
 from gui.data_settings_tab import load_intervals
+
 logger = logging.getLogger(__name__)
+
 
 class StreamingThreadController:
     ir_heartbeat_thread: threading.Thread = None
@@ -25,12 +38,18 @@ class StreamingThreadController:
         clear_jobs()
 
         # Wait for threads with timeout
-        if StreamingThreadController.job_thread is not None and StreamingThreadController.job_thread.is_alive():
+        if (
+            StreamingThreadController.job_thread is not None
+            and StreamingThreadController.job_thread.is_alive()
+        ):
             StreamingThreadController.job_thread.join(timeout=2.0)
             if StreamingThreadController.job_thread.is_alive():
                 logger.warning("Job thread did not terminate within timeout")
 
-        if StreamingThreadController.ir_heartbeat_thread is not None and StreamingThreadController.ir_heartbeat_thread.is_alive():
+        if (
+            StreamingThreadController.ir_heartbeat_thread is not None
+            and StreamingThreadController.ir_heartbeat_thread.is_alive()
+        ):
             StreamingThreadController.ir_heartbeat_thread.join(timeout=2.0)
             if StreamingThreadController.ir_heartbeat_thread.is_alive():
                 logger.warning("Heartbeat thread did not terminate within timeout")
@@ -55,7 +74,11 @@ class StreamingThreadController:
 
     def are_threads_running():
         """Check if streaming threads are running"""
-        return (StreamingThreadController.job_thread is not None and StreamingThreadController.job_thread.is_alive())
+        return (
+            StreamingThreadController.job_thread is not None
+            and StreamingThreadController.job_thread.is_alive()
+        )
+
 
 def _check_iracing(test_file=None):
     if state.ir_connected and not (ir.is_initialized and ir.is_connected):
@@ -65,36 +88,43 @@ def _check_iracing(test_file=None):
         return False
     elif state.ir_connected and (ir.is_initialized and ir.is_connected):
         return True
-    elif not state.ir_connected and ir.startup(test_file=test_file) and ir.is_initialized and ir.is_connected:
+    elif (
+        not state.ir_connected
+        and ir.startup(test_file=test_file)
+        and ir.is_initialized
+        and ir.is_connected
+    ):
         state.ir_connected = True
     return False
 
+
 def _check_heartbeat(test_file=None):
-    while not StreamingThreadController.stop_threads and _check_iracing(test_file=test_file):
+    while not StreamingThreadController.stop_threads and _check_iracing(
+        test_file=test_file
+    ):
         sleep(1)
     # Don't call stop_all_threads here to avoid recursion
     logger.info("iRacing connection lost")
 
+
 def _check_if_can_stream_to(token):
     start_stop_url = os.getenv("UUID_EDIT_URL")
 
-    body = {
-        "token": token
-    }
+    body = {"token": token}
 
     response = requests.patch(start_stop_url, body)
     return response.status_code in [200, 201]
 
+
 def _stop_streaming_reset_uuid(token):
     start_stop_url = os.getenv("UUID_EDIT_URL")
 
-    body = {
-        "token": token
-    }
+    body = {"token": token}
 
     disconnect_all_iot()
     requests.delete(start_stop_url, data=body)
     state.reset_token()
+
 
 def _start_threads(token, test_file=None):
     def job_thread_func(stop_event):
@@ -115,13 +145,11 @@ def _start_threads(token, test_file=None):
         StreamingThreadController.job_thread = threading.Thread(
             target=job_thread_func,
             args=(lambda: StreamingThreadController.stop_threads,),
-            daemon=True
+            daemon=True,
         )
 
         StreamingThreadController.ir_heartbeat_thread = threading.Thread(
-            target=_check_heartbeat,
-            args=(test_file,),
-            daemon=True
+            target=_check_heartbeat, args=(test_file,), daemon=True
         )
 
         StreamingThreadController.job_thread.start()
@@ -131,10 +159,18 @@ def _start_threads(token, test_file=None):
         logger.error("Failed to validate streaming token")
         raise Exception("Failed to validate streaming token")
 
-def create_lobby_and_stream(lobby_name: str, passcode: str, pit_stop_settings: dict, test_file=None):
+
+def create_lobby_and_stream(
+    lobby_name: str, passcode: str, pit_stop_settings: dict, test_file=None
+):
     logger.info(f"Creating lobby: {lobby_name}")
-    response = _create_lobby(lobby_name=lobby_name, passcode=passcode, pit_stop_settings=pit_stop_settings, callback=execute_commands)
-    token = response.get('token', None)
+    response = _create_lobby(
+        lobby_name=lobby_name,
+        passcode=passcode,
+        pit_stop_settings=pit_stop_settings,
+        callback=execute_commands,
+    )
+    token = response.get("token", None)
 
     if token is None:
         logger.error("Failed to create lobby - no token received")
@@ -144,10 +180,18 @@ def create_lobby_and_stream(lobby_name: str, passcode: str, pit_stop_settings: d
     StreamingThreadController.token = token
     _start_threads(token, test_file=test_file)
 
-def join_lobby_and_stream(lobby_name: str, passcode: str, pit_stop_settings: dict, test_file=None):
+
+def join_lobby_and_stream(
+    lobby_name: str, passcode: str, pit_stop_settings: dict, test_file=None
+):
     logger.info(f"Joining lobby: {lobby_name}")
-    response = _join_lobby(lobby_name=lobby_name, passcode=passcode, pit_stop_settings=pit_stop_settings, callback=execute_commands)
-    token = response.get('token', None)
+    response = _join_lobby(
+        lobby_name=lobby_name,
+        passcode=passcode,
+        pit_stop_settings=pit_stop_settings,
+        callback=execute_commands,
+    )
+    token = response.get("token", None)
 
     if token is None:
         logger.error("Failed to join lobby - no token received")

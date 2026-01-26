@@ -7,8 +7,9 @@ from gui.data_settings_tab import get_data_settings_tab
 from gui.pit_stop_settings_tab import get_pit_settings_tab
 from gui.log_handler import GUILogHandler
 
+
 class IracingDataGUI:
-    def __init__(self,root, debug=False):
+    def __init__(self, root, debug=False):
         self.debug = debug
         self.root = root
         self.root.title("iRemoteEngineer")
@@ -39,7 +40,9 @@ class IracingDataGUI:
         # Logs tab
         self.logs_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.logs_frame, text="Logs")
-        self.log_text = scrolledtext.ScrolledText(self.logs_frame, wrap=tk.WORD, height=20, state='disabled')
+        self.log_text = scrolledtext.ScrolledText(
+            self.logs_frame, wrap=tk.WORD, height=20, state="disabled"
+        )
         self.log_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         # Set up logging to GUI
@@ -68,8 +71,7 @@ class IracingDataGUI:
         if is_streaming():
             messagebox.showwarning(
                 "Cannot close",
-                "The stream is still running. Please stop the stream before exiting."
+                "The stream is still running. Please stop the stream before exiting.",
             )
             return  # Prevent closing
         self.root.destroy()  # Allow closing
-

@@ -9,10 +9,18 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def print_callback(topic, payload, **kwargs):
     logging.info(f"Received message on topic {topic}: {payload}")
 
-def create_lobby(lobby_name, passcode, pit_stop_settings, callback=print_callback, **additional_fields):
+
+def create_lobby(
+    lobby_name,
+    passcode,
+    pit_stop_settings,
+    callback=print_callback,
+    **additional_fields,
+):
     """
     Create a new lobby in DynamoDB with a hashed passcode.
 
@@ -30,24 +38,24 @@ def create_lobby(lobby_name, passcode, pit_stop_settings, callback=print_callbac
     """
     # Create lobby item
     lobby = {
-        'lobby_name': lobby_name,
-        'passcode': passcode,
-        'pit_stop_settings': pit_stop_settings,
+        "lobby_name": lobby_name,
+        "passcode": passcode,
+        "pit_stop_settings": pit_stop_settings,
     }
 
     lobby.update(additional_fields)
 
-    create_lobby_url = os.getenv('CREATE_LOBBY_URL')
+    create_lobby_url = os.getenv("CREATE_LOBBY_URL")
     response = requests.post(create_lobby_url, data=json.dumps(lobby))
 
     # Check if lobby creation failed
     response_data = response.json()
-    if response.status_code != 201 or response_data.get('error'):
-        error_msg = response_data.get('error', 'Unknown error occurred')
+    if response.status_code != 201 or response_data.get("error"):
+        error_msg = response_data.get("error", "Unknown error occurred")
         raise ValueError(f"Failed to create lobby: {error_msg}")
 
     try:
-        del pit_stop_settings['remote_pit_control_enabled']
+        del pit_stop_settings["remote_pit_control_enabled"]
     except KeyError:
         pass
 
@@ -57,7 +65,7 @@ def create_lobby(lobby_name, passcode, pit_stop_settings, callback=print_callbac
         except Exception as e:
             logger.error(f"Command callback failed: {e}", exc_info=True)
 
-    iot_topic_url = os.getenv('IOT_TOPIC_URL')
+    iot_topic_url = os.getenv("IOT_TOPIC_URL")
     if True in pit_stop_settings.values():
         subscribe_to_iot_topic(
             topic=f"{lobby_name}/commands",
@@ -67,7 +75,14 @@ def create_lobby(lobby_name, passcode, pit_stop_settings, callback=print_callbac
 
     return response_data
 
-def join_lobby(lobby_name, passcode, pit_stop_settings, callback=print_callback,**additional_fields):
+
+def join_lobby(
+    lobby_name,
+    passcode,
+    pit_stop_settings,
+    callback=print_callback,
+    **additional_fields,
+):
     """
     Join an existing lobby in DynamoDB with a hashed passcode to stream data.
 
@@ -85,24 +100,24 @@ def join_lobby(lobby_name, passcode, pit_stop_settings, callback=print_callback,
     """
     # Create lobby item
     lobby = {
-        'lobby_name': lobby_name,
-        'passcode': passcode,
-        'pit_stop_settings': pit_stop_settings
+        "lobby_name": lobby_name,
+        "passcode": passcode,
+        "pit_stop_settings": pit_stop_settings,
     }
 
     lobby.update(additional_fields)
 
-    lobby_auth_url = os.getenv('LOBBY_AUTH_URL')
+    lobby_auth_url = os.getenv("LOBBY_AUTH_URL")
     response = requests.post(lobby_auth_url, data=json.dumps(lobby))
 
     # Check if join failed (lobby doesn't exist or wrong credentials)
     response_data = response.json()
-    if response.status_code != 200 or response_data.get('error'):
-        error_msg = response_data.get('error', 'Unknown error occurred')
+    if response.status_code != 200 or response_data.get("error"):
+        error_msg = response_data.get("error", "Unknown error occurred")
         raise ValueError(f"Failed to join lobby: {error_msg}")
 
     try:
-        del pit_stop_settings['remote_pit_control_enabled']
+        del pit_stop_settings["remote_pit_control_enabled"]
     except KeyError:
         pass
 
@@ -112,7 +127,7 @@ def join_lobby(lobby_name, passcode, pit_stop_settings, callback=print_callback,
         except Exception as e:
             logger.error(f"Command callback failed: {e}", exc_info=True)
 
-    iot_topic_url = os.getenv('IOT_TOPIC_URL')
+    iot_topic_url = os.getenv("IOT_TOPIC_URL")
     if True in pit_stop_settings.values():
         subscribe_to_iot_topic(
             topic=f"{lobby_name}/commands",
@@ -122,12 +137,14 @@ def join_lobby(lobby_name, passcode, pit_stop_settings, callback=print_callback,
 
     return response_data
 
+
 ## Websockets
+
 
 # Certificate files configuration
 # Use PyInstaller's temp directory when bundled, otherwise use development path
 def get_cert_dir():
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         # Running as compiled executable - use bundle directory
         base_path = Path(sys._MEIPASS)
     else:
@@ -135,13 +152,16 @@ def get_cert_dir():
         base_path = Path(__file__).resolve().parent.parent
     return base_path / "certificates"
 
+
 CERT_DIR = get_cert_dir()
 
 # Global MQTT connection storage (keeps connections alive)
 _active_mqtt_connections = []
 
-def subscribe_to_iot_topic(topic, message_callback, endpoint,
-                           cert_path=None, key_path=None, ca_path=None):
+
+def subscribe_to_iot_topic(
+    topic, message_callback, endpoint, cert_path=None, key_path=None, ca_path=None
+):
     """
     Subscribe to an AWS IoT Core topic using MQTT.
 
@@ -210,7 +230,7 @@ def subscribe_to_iot_topic(topic, message_callback, endpoint,
         clean_session=True,
         keep_alive_secs=30,
         on_connection_interrupted=on_connection_interrupted,
-        on_connection_resumed=on_connection_resumed
+        on_connection_resumed=on_connection_resumed,
     )
 
     logger.info(f"Connecting to AWS IoT...")
@@ -226,9 +246,7 @@ def subscribe_to_iot_topic(topic, message_callback, endpoint,
     logger.info(f"Subscribing to topic: {topic}")
     try:
         subscribe_future, _ = mqtt_connection.subscribe(
-            topic=topic,
-            qos=mqtt.QoS.AT_LEAST_ONCE,
-            callback=message_callback
+            topic=topic, qos=mqtt.QoS.AT_LEAST_ONCE, callback=message_callback
         )
 
         subscribe_future.result(timeout=10)
@@ -240,37 +258,39 @@ def subscribe_to_iot_topic(topic, message_callback, endpoint,
 
     # Store connection to keep it alive
     connection_info = {
-        'connection': mqtt_connection,
-        'event_loop_group': event_loop_group,
-        'topic': topic,
-        'endpoint': endpoint
+        "connection": mqtt_connection,
+        "event_loop_group": event_loop_group,
+        "topic": topic,
+        "endpoint": endpoint,
     }
     _active_mqtt_connections.append(connection_info)
 
     return mqtt_connection, event_loop_group
 
+
 # def publish_to_iot_topic(mqtt_connection, topic, message):
 #     """
 #     Publish a message to an AWS IoT Core topic.
-    
+
 #     Args:
 #         mqtt_connection: Active MQTT connection from subscribe_to_iot_topic
 #         topic (str): The IoT topic to publish to
 #         message (dict or str): Message to publish (dicts will be JSON encoded)
-    
+
 #     Returns:
 #         Future: AWS CRT future that can be awaited
 #     """
 #     if isinstance(message, dict):
 #         message = json.dumps(message)
-    
+
 #     publish_future, packet_id = mqtt_connection.publish(
 #         topic=topic,
 #         payload=message,
 #         qos=mqtt.QoS.AT_LEAST_ONCE
 #     )
-    
+
 #     return publish_future
+
 
 def disconnect_iot(mqtt_connection):
     """
@@ -284,6 +304,7 @@ def disconnect_iot(mqtt_connection):
     disconnect_future.result()
     logger.info("Disconnected from IoT Core")
 
+
 def disconnect_all_iot():
     """
     Disconnect all active MQTT connections.
@@ -292,11 +313,13 @@ def disconnect_all_iot():
     global _active_mqtt_connections
 
     if len(_active_mqtt_connections) > 0:
-        logger.info(f"Disconnecting {len(_active_mqtt_connections)} MQTT connection(s)...")
+        logger.info(
+            f"Disconnecting {len(_active_mqtt_connections)} MQTT connection(s)..."
+        )
 
     for conn_info in _active_mqtt_connections:
         try:
-            disconnect_future = conn_info['connection'].disconnect()
+            disconnect_future = conn_info["connection"].disconnect()
             disconnect_future.result(timeout=5)
         except Exception as e:
             logger.error(f"Error disconnecting MQTT: {e}")
