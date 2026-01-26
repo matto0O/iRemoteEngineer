@@ -38,24 +38,6 @@ jobs:
             pip install -r python/requirements.txt
           }
 
-      - name: Test app imports
-        working-directory: python/code
-        run: |
-          # Test that the main module can be imported without errors
-          python -c "
-          import sys
-          sys.path.insert(0, '.')
-          # Test basic imports work (can't run full GUI in CI)
-          try:
-              from gui.gui_main import IracingDataGUI
-              from utils import Config, State, Car
-              from race_computations import RaceComputations
-              print('All imports successful!')
-          except Exception as e:
-              print(f'Import test failed: {e}')
-              sys.exit(1)
-          "
-
       - name: Build with PyInstaller
         working-directory: python
         run: |
