@@ -39,14 +39,20 @@ jobs:
           }
       
       - name: Save certificate files
+        env:
+          CERT_PEM: ${{ secrets.CERT_PEM }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PUBLIC_KEY: ${{ secrets.PUBLIC_KEY }}
+          CERT_POLICY: ${{ secrets.CERT_POLICY }}
+          ROOT_CA: ${{ secrets.ROOT_CA }}
         run: |
           New-Item -ItemType Directory -Force -Path python/certificates
-          "${{ secrets.CERT_PEM }}" | Out-File -FilePath python/certificates/pit_stop_manager.cert.pem -Encoding utf8
-          "${{ secrets.PRIVATE_KEY }}" | Out-File -FilePath python/certificates/pit_stop_manager.private.key -Encoding utf8
-          "${{ secrets.PUBLIC_KEY }}" | Out-File -FilePath python/certificates/pit_stop_manager.public.key -Encoding utf8
-          "${{ secrets.CERT_POLICY }}" | Out-File -FilePath python/certificates/pit_stop_manager-Policy -Encoding utf8
-          "${{ secrets.ROOT_CA }}" | Out-File -FilePath python/certificates/root-CA.crt -Encoding utf8
-        
+          $env:CERT_PEM | Out-File -FilePath python/certificates/pit_stop_manager.cert.pem -Encoding utf8
+          $env:PRIVATE_KEY | Out-File -FilePath python/certificates/pit_stop_manager.private.key -Encoding utf8
+          $env:PUBLIC_KEY | Out-File -FilePath python/certificates/pit_stop_manager.public.key -Encoding utf8
+          $env:CERT_POLICY | Out-File -FilePath python/certificates/pit_stop_manager-Policy -Encoding utf8
+          $env:ROOT_CA | Out-File -FilePath python/certificates/root-CA.crt -Encoding utf8
+
       - name: Create .env file
         run: |
           @"
