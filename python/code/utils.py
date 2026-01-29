@@ -1,4 +1,3 @@
-from enum import Enum
 import time
 import logging
 from numpy import zeros
@@ -62,9 +61,9 @@ class State:
             "being_towed": False,
         }
         self.session_info = {
-            "series_id": None,
-            "session_id": None,
-            "subsession_id": None,
+            "series_id": 0,
+            "session_id": 0,
+            "subsession_id": 0,
             "event_type": None,
             "session_type": None,
             "track_name": None,

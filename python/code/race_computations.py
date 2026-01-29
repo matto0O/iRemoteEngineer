@@ -53,7 +53,7 @@ def clear_jobs():
 def schedule_data_ingestion(token, intervals={}):
     state.computation_helpers["last_fuel_level"] = ir["FuelLevel"]
     state.current_token = token
-    get_session_info()
+    get_session_info(force_update=True)
 
     function_mapping = {
         "lap_finish": post_lap_invocations,
@@ -346,22 +346,19 @@ def relative():
         if changed_data:
             send_data("cars", changed_data)
 
-    send_sesh_info = (
-        state.session_info.get("team_name", None) == None
-        or state.session_info.get("player_car_number", None) == None
-        or state.session_info.get("car_model_id", None) == None
-    )
-
-    state.session_info["team_name"] = all_cars[my_car_idx].team_name
-    state.session_info["player_car_number"] = all_cars[my_car_idx].car_number
-    state.session_info["car_model_id"] = all_cars[my_car_idx].car_model_id
-
-    if send_sesh_info:
-        get_session_info()
+    if None not in [
+        all_cars[my_car_idx].team_name,
+        all_cars[my_car_idx].car_number,
+        all_cars[my_car_idx].car_model_id,
+    ]:
+        state.session_info["team_name"] = all_cars[my_car_idx].team_name
+        state.session_info["player_car_number"] = all_cars[my_car_idx].car_number
+        state.session_info["car_model_id"] = all_cars[my_car_idx].car_model_id
 
     if in_car_status_changed():
-        get_session_info()
         is_towed()
+
+    get_session_info()
 
     return changed_data
 
@@ -397,63 +394,64 @@ def lap_finished():
 
 
 def post_lap_invocations(funcs=[]):
+    if lap_count_decreased():
+        get_session_info()
     if lap_finished():
         fuel_data()
         last_lap_data()
         for func in funcs:
             func()
-        get_session_info()
 
 
-def get_session_info():
+def lap_count_decreased():
+    current_lap_count = ir["Lap"] if ir["Lap"] is not None else 0
+    if current_lap_count < state.computation_helpers.get("last_lap", None):
+        state.computation_helpers["last_lap"] = current_lap_count
+        return True
+    return False
+
+
+def session_type_changed():
     weekend_info = ir["WeekendInfo"]
-    session_info = ir["SessionInfo"]
-    data = {
-        "series_id": weekend_info["SeriesID"],
-        "session_id": weekend_info["SessionID"],
-        "subsession_id": weekend_info["SubSessionID"],
-        "event_type": weekend_info["EventType"],  # typ lobby
-        "session_type": session_info.get(
-            "SessionName", weekend_info["EventType"]
-        ),  # jedna z trzech sesji w lobby
-        "track_name": weekend_info["TrackDisplayName"],
-        "track_config": weekend_info["TrackConfigName"],
-        "split_time_info": split_time_info(),
-        "car_model_id": state.session_info.get("car_model_id", None),
-        "team_name": state.session_info.get("team_name", None),
-        "player_car_number": state.session_info.get("player_car_number", None),
-    }
-    for key in [
-        "series_id",
-        "session_id",
-        "subsession_id",
-        "track_name",
-        "track_config",
-        "event_type",
-        "session_type",
-    ]:
-        if data[key] != state.session_info[key]:
-            logger.info(f"New session: {data['track_name']} - {data['event_type']}")
-            state.reset_state()
-            state.session_info.update(data)
-            send_data("session_info", data, reset=True)
-            return
-    if (
-        data["session_type"] != state.session_info["session_type"]
-        or (
-            data["car_model_id"] != state.session_info["car_model_id"]
-            and data["car_model_id"] != None
-        )
-        or (
-            data["team_name"] != state.session_info["team_name"]
-            and data["team_name"] != None
-        )
-        or (
-            data["player_car_number"] != state.session_info["player_car_number"]
-            and data["player_car_number"] != None
-        )
-    ):
-        send_data("session_info", data)
+    series_id = weekend_info["SeriesID"]
+    session_id = weekend_info["SessionID"]
+    subsession_id = weekend_info["SubSessionID"]
+
+    result = (
+        series_id != state.session_info.get("series_id", None)
+        or session_id != state.session_info.get("session_id", None)
+        or subsession_id != state.session_info.get("subsession_id", None)
+    )
+    return result
+
+
+def get_session_info(force_update=False):
+    if session_type_changed() or lap_count_decreased() or force_update:
+        weekend_info = ir["WeekendInfo"]
+        session_info = ir["SessionInfo"]
+        data = {
+            "series_id": weekend_info["SeriesID"],
+            "session_id": weekend_info["SessionID"],
+            "subsession_id": weekend_info["SubSessionID"],
+            "event_type": weekend_info["EventType"],  # typ lobby
+            "session_type": session_info.get(
+                "SessionName", weekend_info["EventType"]
+            ),  # jedna z trzech sesji w lobby
+            "track_name": weekend_info["TrackDisplayName"],
+            "track_config": weekend_info["TrackConfigName"],
+            "split_time_info": split_time_info(),
+            "car_model_id": state.session_info.get("car_model_id", None),
+            "team_name": state.session_info.get("team_name", None),
+            "player_car_number": state.session_info.get("player_car_number", None),
+        }
+
+        logger.info(f"New session: {data['track_name']} - {data['event_type']}")
+
+        state.reset_state()
+        state.computation_helpers["last_lap"] = ir["Lap"]
+        state.session_info.update(data)
+        send_data("session_info", data, reset=True)
+        print(data)
 
 
 # TODO incorporate below

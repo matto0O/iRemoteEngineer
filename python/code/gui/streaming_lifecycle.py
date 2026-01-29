@@ -124,6 +124,7 @@ def _stop_streaming_reset_uuid(token):
     disconnect_all_iot()
     requests.delete(start_stop_url, data=body)
     state.reset_token()
+    state.reset_state()
 
 
 def _start_threads(token, test_file=None):
