@@ -1117,7 +1117,7 @@ const customSort = (event) => {
 /* Responsive Design */
 @media (max-width: 768px) {
   .car-tracker-wrapper {
-    padding: 0.5rem;
+    padding: 0;
   }
 
   .card-header {
@@ -1142,6 +1142,15 @@ const customSort = (event) => {
 
   .filter-button-group button {
     width: 100%;
+  }
+
+  .car-info {
+    width: 100%;
+    flex-shrink: 1;
+  }
+
+  .car-table-container {
+    overflow-x: auto;
   }
 }
 </style>

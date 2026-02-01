@@ -553,12 +553,31 @@ const getFilterIcon = (value) => {
 }
 
 @media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .card-header-buttons {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .card-header-buttons > button {
+    flex: 1;
+  }
+
   .counters-grid {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .filters-container {
     justify-content: center;
+  }
+
+  .events-table-container {
+    overflow-x: auto;
   }
 }
 

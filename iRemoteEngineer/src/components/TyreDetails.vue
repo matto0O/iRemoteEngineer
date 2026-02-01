@@ -568,6 +568,10 @@ const getWearClass = (wear) => {
   .tyre-visual-grid {
     grid-template-columns: 1fr;
   }
+
+  .table-section {
+    overflow-x: auto;
+  }
 }
 
 /* Dark mode overrides */

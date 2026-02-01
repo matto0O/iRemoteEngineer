@@ -476,8 +476,26 @@ const createCommand = () => {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .grid-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .item-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
   .tyre-controls {
     justify-content: flex-start;
+  }
+
+  .fuel-input-compact {
+    width: 100%;
+  }
+
+  .fuel-input-compact :deep(.p-inputnumber-input) {
+    width: 100%;
   }
 }
 

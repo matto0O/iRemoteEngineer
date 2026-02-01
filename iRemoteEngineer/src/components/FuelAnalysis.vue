@@ -572,7 +572,7 @@ const burnChartData = computed(() => {
 
 @media (max-width: 768px) {
   .summary-grid {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .toggle-container {

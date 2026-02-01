@@ -783,13 +783,32 @@ const statistics = computed(() => {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .card-header-buttons {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .card-header-buttons > button {
+    flex: 1;
+  }
+
   .legend-container {
     flex-direction: column;
     align-items: center;
   }
 
   .statistics-container {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .lap-history-table-container {
+    overflow-x: auto;
   }
 }
 

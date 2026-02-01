@@ -356,17 +356,23 @@ onBeforeUnmount(() => {
   grid-template-columns: 1.3fr 1.3fr 0.7fr;
 }
 
-/* Make widgets fill their grid cells */
+/* Make widgets fill their grid cells and prevent overflow */
 .dashboard-row > :deep(*),
 .dashboard-main > :deep(*) {
   margin: 0 !important;
   max-width: none !important;
   width: 100% !important;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Responsive: 2 columns on medium screens */
 @media (max-width: 1400px) {
   .dashboard-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-row:last-child {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -377,6 +383,9 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
+  .dashboard-row:last-child {
+    grid-template-columns: 1fr;
+  }
 }
 
 .loading-container {
@@ -395,6 +404,10 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 768px) {
+  .dashboard-container {
+    padding: 0.5rem;
+  }
+
   .panel-header {
     flex-direction: column;
     gap: 0.75rem;
