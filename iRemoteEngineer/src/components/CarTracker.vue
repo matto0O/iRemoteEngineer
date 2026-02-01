@@ -225,7 +225,7 @@
         scrollHeight="400px"
         :removableSort="true"
         striped-rows
-        :sortField="'car_position'"
+        :sortField="'_sortPosition'"
         :sortOrder="1"
         class="p-datatable-sm"
         sortMode="single"
@@ -240,8 +240,8 @@
           }
         "
       >
-        <Column v-if="visibleColumns.car_position" field="car_position" header="Overall Pos" sortable></Column>
-        <Column v-if="visibleColumns.car_class_position" field="car_class_position" header="Class Pos" sortable></Column>
+        <Column v-if="visibleColumns.car_position" field="car_position" sortField="_sortPosition" header="Overall Pos" sortable></Column>
+        <Column v-if="visibleColumns.car_class_position" field="car_class_position" sortField="_sortClassPosition" header="Class Pos" sortable></Column>
         <Column v-if="visibleColumns.car_number" header="Car #" sortable>
           <template #body="slotProps">
             <div
@@ -666,10 +666,12 @@ const filteredCars = computed(() => {
 })
 
 const sortedFilteredCars = computed(() => {
-  return [...filteredCars.value].sort((a, b) => {
-    const posA = a.car_position === 0 || a.car_position == null ? Infinity : a.car_position
-    const posB = b.car_position === 0 || b.car_position == null ? Infinity : b.car_position
-    return posA - posB
+  return [...filteredCars.value].map(car => ({
+    ...car,
+    _sortPosition: car.car_position === 0 || car.car_position == null ? Number.MAX_SAFE_INTEGER : car.car_position,
+    _sortClassPosition: car.car_class_position === 0 || car.car_class_position == null ? Number.MAX_SAFE_INTEGER : car.car_class_position,
+  })).sort((a, b) => {
+    return a._sortPosition - b._sortPosition
   })
 })
 
@@ -756,19 +758,6 @@ const customSort = (event) => {
       const timeA = lapTimeToSeconds(a[field]);
       const timeB = lapTimeToSeconds(b[field]);
       return order * (timeA - timeB);
-    });
-  }
-  // Special handling for position fields - treat 0 as infinity
-  else if (field === 'car_position' || field === 'car_class_position') {
-    data.sort((a, b) => {
-      let valueA = a[field];
-      let valueB = b[field];
-
-      // Treat 0 as infinity for position fields
-      if (valueA === 0 || valueA == null) valueA = Infinity;
-      if (valueB === 0 || valueB == null) valueB = Infinity;
-
-      return order * (valueA - valueB);
     });
   }
   else {
