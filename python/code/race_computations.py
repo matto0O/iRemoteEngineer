@@ -350,15 +350,20 @@ def relative():
         all_cars[my_car_idx].team_name,
         all_cars[my_car_idx].car_number,
         all_cars[my_car_idx].car_model_id,
-    ]:
+    ] and (
+        state.session_info["team_name"] != all_cars[my_car_idx].team_name
+        or state.session_info["player_car_number"] != all_cars[my_car_idx].car_number
+        or state.session_info["car_model_id"] != all_cars[my_car_idx].car_model_id
+    ):
         state.session_info["team_name"] = all_cars[my_car_idx].team_name
         state.session_info["player_car_number"] = all_cars[my_car_idx].car_number
         state.session_info["car_model_id"] = all_cars[my_car_idx].car_model_id
+        get_session_info(force_update=True)
+    else:
+        get_session_info()
 
     if in_car_status_changed():
         is_towed()
-
-    get_session_info()
 
     return changed_data
 
@@ -395,7 +400,7 @@ def lap_finished():
 
 def post_lap_invocations(funcs=[]):
     if lap_count_decreased():
-        get_session_info()
+        get_session_info(force_update=True)
     if lap_finished():
         fuel_data()
         last_lap_data()
@@ -426,7 +431,7 @@ def session_type_changed():
 
 
 def get_session_info(force_update=False):
-    if session_type_changed() or lap_count_decreased() or force_update:
+    if session_type_changed() or force_update:
         weekend_info = ir["WeekendInfo"]
         session_info = ir["SessionInfo"]
         data = {

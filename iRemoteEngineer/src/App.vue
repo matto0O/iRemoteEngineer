@@ -112,7 +112,10 @@
             <div class="card-info">
               <div class="info-row">
                 <i class="pi pi-map-marker info-icon"></i>
-                <span class="info-text bold">{{ stream.track_name }} - {{ stream.track_config }}</span>
+                <span class="info-text bold">
+                  {{ stream.track_name }}
+                  <template v-if="stream.track_config"> - {{ stream.track_config }}</template>
+                </span>
               </div>
               <div class="info-row">
                 <i class="pi pi-trophy info-icon"></i>
