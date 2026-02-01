@@ -155,7 +155,6 @@ const props = defineProps({
   }
 })
 
-console.log("pit", props.authToken)
 const { sendCommand } = useRaceData(props.socket, props.authToken)
 const { getFuelUnit, getFuelCommandSuffix } = useUnits()
 

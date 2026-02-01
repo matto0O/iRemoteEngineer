@@ -9,10 +9,8 @@ export default function useWebSocketConnection(lobby_name = '', authToken = '', 
   const connectionError = ref(null)
 
   const connect = () => {
-    console.log('Connect called with:', { lobby_name, authToken, useMockMode });
     
     if (socket.value) {
-      console.log('Socket already exists');
       return socket.value;
     }
 
@@ -30,7 +28,6 @@ export default function useWebSocketConnection(lobby_name = '', authToken = '', 
       // Set connected immediately for mock mode
       isConnected.value = true;
       connectionError.value = null;
-      console.log("Mock connection established, isConnected:", isConnected.value);
       
       return mockService;
     }
@@ -47,14 +44,12 @@ export default function useWebSocketConnection(lobby_name = '', authToken = '', 
     ws.onopen = () => {
       isConnected.value = true
       connectionError.value = null
-      console.log("WebSocket connection established")
       
       // Send subscription message with JWT token instead of lobby/team directly
       ws.send(JSON.stringify({ 
         action: 'subscribe', 
         token: authToken 
       }))
-      console.log(`Subscribed with token for lobby: ${lobby_name}`)
     }
 
     ws.onerror = (error) => {
@@ -64,7 +59,6 @@ export default function useWebSocketConnection(lobby_name = '', authToken = '', 
 
     ws.onclose = (event) => {
       isConnected.value = false
-      console.log("WebSocket connection closed", event.code, event.reason)
       
       // Check if it was an authentication error
       if (event.code === 1008 || event.reason?.includes('auth')) {
@@ -75,11 +69,6 @@ export default function useWebSocketConnection(lobby_name = '', authToken = '', 
     ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data)
-        
-        // Handle subscription confirmation
-        if (message.message && message.message.includes('directed towards lobby')) {
-          console.log("Subscription confirmed:", message)
-        }
         
         // Handle errors from the server
         if (message.error) {
@@ -110,13 +99,11 @@ export default function useWebSocketConnection(lobby_name = '', authToken = '', 
 
   // Auto-connect when mounted
   onMounted(() => {
-    console.log(`Component mounted, connecting ${useMockMode ? 'mock' : 'real'} socket...`)
     connect()
   })
 
   // Clean up connection when component unmounts
   onBeforeUnmount(() => {
-    console.log("Component unmounting, disconnecting socket...")
     disconnect()
   })
 

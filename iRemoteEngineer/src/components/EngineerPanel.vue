@@ -172,8 +172,6 @@ const props = defineProps({
 
 defineEmits(['back-to-lobby']);
 
-console.log('EngineerPanel props:', props);
-
 const useMockMode = computed(() => props.use_mock_mode);
 
 const { socket, isConnected, connectionError, connect } = useWebSocketConnection(
@@ -188,24 +186,13 @@ const showUnitsSettings = ref(false);
 
 const safeSocket = computed(() => isConnected.value ? socket.value : null);
 
-// Watch for connection changes
-watch(isConnected, (newVal) => {
-  console.log('isConnected changed to:', newVal);
-});
-
-watch(safeSocket, (newVal) => {
-  console.log('safeSocket changed to:', newVal);
-});
-
 // Attempt to reconnect if connection fails (only in non-mock mode)
 const reconnectInterval = ref(null);
 
 onMounted(() => {
-  console.log('EngineerPanel mounted');
   if (!props.use_mock_mode) {
     reconnectInterval.value = setInterval(() => {
       if (!isConnected.value) {
-        console.log('Attempting to reconnect...');
         connect();
       }
     }, 5000); // Try reconnecting every 5 seconds
@@ -213,7 +200,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  console.log('EngineerPanel unmounting');
   if (reconnectInterval.value) {
     clearInterval(reconnectInterval.value);
   }

@@ -6,7 +6,6 @@ let currentSocket = null
 let currentAuthToken = null
 
 export default function useRaceData(socket, authToken = null) {
-  console.log("urd", authToken)
   if (!socket) {
     return {
       data: ref({
@@ -29,16 +28,12 @@ export default function useRaceData(socket, authToken = null) {
 
   // If instance exists and socket hasn't changed, return existing instance
   if (instance && currentSocket === socket) {
-    console.log("Returning existing useRaceData instance")
     // Update authToken if a new one is provided
     if (authToken !== null && authToken !== currentAuthToken) {
       currentAuthToken = authToken
     }
     return instance
   }
-
-  // If socket has changed or no instance exists, create/recreate
-  console.log("Creating new useRaceData instance with socket:", socket)
 
   // Store the authToken (prefer non-null value)
   if (authToken !== null) {
@@ -64,8 +59,6 @@ export default function useRaceData(socket, authToken = null) {
   const originalOnMessage = socket.onmessage
 
   socket.onmessage = (event) => {
-    console.log("[useRaceData] Received WebSocket message")
-
     // First, call the original handler if it exists (for subscription confirmations, etc.)
     if (typeof originalOnMessage === 'function') {
       originalOnMessage(event)
@@ -73,11 +66,9 @@ export default function useRaceData(socket, authToken = null) {
 
     try {
       const data_json = JSON.parse(event.data)
-      console.log("[useRaceData] Parsed message, keys:", Object.keys(data_json))
 
       // Skip messages that are just confirmations/errors (not data updates)
       if (data_json.message || data_json.error) {
-        console.log("[useRaceData] Skipping confirmation/error message:", data_json)
         return
       }
 
@@ -119,20 +110,12 @@ export default function useRaceData(socket, authToken = null) {
 
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(message)
-      console.log("Command sent to AWS WebSocket:", commandString)
     } else if (socket && typeof socket.send === 'function') {
       // For mock socket
       socket.send(message)
-      console.log("Command sent (mock):", commandString)
     } else {
       console.warn("Cannot send command, socket not ready. ReadyState:", socket?.readyState)
     }
-  }
-
-  // Check socket connection status
-  console.log("Socket ready state:", socket.readyState)
-  if (typeof WebSocket !== 'undefined') {
-    console.log("WebSocket.OPEN constant:", WebSocket.OPEN)
   }
 
   // Create/update the instance

@@ -448,9 +448,6 @@ export default {
     }
   },
   watch: {
-    selectedStream(newVal) {
-      console.log('Selected stream changed:', newVal);
-    },
     useMockMode(newVal) {
       if (newVal) {
         this.allStreams = this.getMockStreams();

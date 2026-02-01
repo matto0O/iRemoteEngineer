@@ -28,11 +28,11 @@ export class MockDataService {
         "user_name": "Pace Car"
        },
        "1": {
-        "car_class_position": 1,
+        "car_class_position": 0,
         "car_est_time": 62.282,
         "car_model_id": 195,
         "car_number": "1",
-        "car_position": 11,
+        "car_position": 0,
         "class_id": 4073,
         "distance_pct": 0.974,
         "gap_leader": 0.01,
@@ -355,7 +355,6 @@ export class MockDataService {
 
   // Simulate WebSocket connection
   connect() {
-    console.log("Mock WebSocket connected");
     this.connected = true;
   }
 
@@ -388,7 +387,6 @@ export class MockDataService {
     try {
       const parsedCommand = JSON.parse(command);
       if (parsedCommand.action === 'subscribe') {
-        console.log("Mock subscription confirmed for token:", parsedCommand.token);
       }
     } catch (e) {
       // Just a regular command string
@@ -402,7 +400,6 @@ export class MockDataService {
       clearInterval(this.intervalId);
     }
     this.listeners = [];
-    console.log("Mock WebSocket disconnected");
   }
 
   // Properties to match WebSocket API
