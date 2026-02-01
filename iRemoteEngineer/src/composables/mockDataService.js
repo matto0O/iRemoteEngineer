@@ -382,16 +382,6 @@ export class MockDataService {
   // Send command (mock)
   send(command) {
     console.log("Mock command sent:", command);
-    
-    // Simulate command response
-    try {
-      const parsedCommand = JSON.parse(command);
-      if (parsedCommand.action === 'subscribe') {
-      }
-    } catch (e) {
-      // Just a regular command string
-      console.log("Mock pit command:", command);
-    }
   }
 
   // Disconnect

@@ -153,7 +153,7 @@ import Button from 'primevue/button';
 import useWebSocketConnection from '../composables/createSocket.js';
 import { useDarkMode } from '../composables/useDarkMode.js';
 import { useUnits } from '../composables/useUnits.js';
-import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
   lobby_name: {
