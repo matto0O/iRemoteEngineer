@@ -113,7 +113,12 @@ def _check_if_can_stream_to(token):
     body = {"token": token}
 
     response = requests.patch(start_stop_url, body)
-    return response.status_code in [200, 201]
+    result = response.status_code in [200, 201]
+    if not result:
+        logger.warning(
+            f"Token validation failed - {response.text}"
+        )
+    return result
 
 
 def _stop_streaming_reset_uuid(token):
@@ -134,7 +139,6 @@ def _start_threads(token, test_file=None):
         logger.info("Data streaming started")
         while not stop_event():
             run_jobs(interval=0.5)
-        _stop_streaming_reset_uuid(StreamingThreadController.token)
 
     logger.info("Waiting for iRacing connection...")
     while not _check_iracing(test_file):
@@ -157,7 +161,6 @@ def _start_threads(token, test_file=None):
         StreamingThreadController.ir_heartbeat_thread.start()
 
     else:
-        logger.error("Failed to validate streaming token")
         raise Exception("Failed to validate streaming token")
 
 

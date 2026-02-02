@@ -124,8 +124,8 @@ def get_streaming_tab(notebook, debug=False):
             logger.error(f"Failed to start streaming: {e}", exc_info=True)
             frame.after(
                 0,
-                lambda: messagebox.showerror(
-                    "Error", f"Failed to start streaming:\n{str(e)}"
+                lambda error=e: messagebox.showerror(
+                    "Error", f"Failed to start streaming:\n{str(error)}"
                 ),
             )
             # Re-enable buttons on error
