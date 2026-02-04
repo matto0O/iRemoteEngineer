@@ -1,5 +1,6 @@
 <template>
   <div class="app-container">
+    <Toast />
     <!-- Demo Mode Banner -->
     <div class="demo-mode-banner" v-if="useDemoMode">
       <span>🔧 DEMO MODE - Using simulated data</span>
@@ -22,12 +23,14 @@
 </template>
 
 <script>
+import Toast from 'primevue/toast';
 import LandingPage from './components/LandingPage.vue';
 import EngineerPanel from './components/EngineerPanel.vue';
 
 export default {
   name: 'App',
   components: {
+    Toast,
     LandingPage,
     EngineerPanel
   },

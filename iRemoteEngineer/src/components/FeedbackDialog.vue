@@ -54,18 +54,21 @@
 
     <template #footer>
       <Button label="Cancel" severity="secondary" @click="close" />
-      <Button label="Submit" icon="pi pi-send" @click="submit" :disabled="!isValid" />
+      <Button label="Submit" icon="pi pi-send" @click="submit" :disabled="!isValid" :loading="submitting" />
     </template>
   </Dialog>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useToast } from 'primevue/usetoast';
 import Dialog from 'primevue/dialog';
 import Dropdown from 'primevue/dropdown';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Button from 'primevue/button';
+
+const toast = useToast();
 
 defineProps({
   visible: {
@@ -101,17 +104,49 @@ function close() {
   resetForm();
 }
 
-function submit() {
+const submitting = ref(false);
+
+async function submit() {
   if (!isValid.value) return;
 
-  console.log({
-    type: feedbackType.value,
-    email: email.value || null,
-    topic: topic.value,
-    description: description.value
-  });
+  submitting.value = true;
+  try {
+    const response = await fetch(import.meta.env.VITE_FEEDBACK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: feedbackType.value,
+        email: email.value || null,
+        title: topic.value,
+        description: description.value
+      })
+    });
 
-  close();
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    toast.add({
+      severity: 'success',
+      summary: 'Feedback Submitted',
+      detail: `Issue created: #${data.issue_id}`,
+      sticky: true
+    });
+
+    close();
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    toast.add({
+      severity: 'error',
+      summary: 'Submission Failed',
+      detail: 'Could not submit feedback. Please try again.',
+      life: 5000
+    });
+  } finally {
+    submitting.value = false;
+  }
 }
 </script>
 
