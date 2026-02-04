@@ -31,8 +31,16 @@
             v-model="searchQuery"
             placeholder="Search lobby names..."
             style="width: 100%"
+            @keyup.enter="applyFilters"
           />
         </span>
+        <PrimeButton
+          label="Search"
+          icon="pi pi-search"
+          @click="applyFilters"
+          size="small"
+          :loading="isLoading"
+        />
         <PrimeButton
           :label="showFilters ? 'Hide' : 'Filters'"
           icon="pi pi-filter"
@@ -40,6 +48,21 @@
           @click="showFilters = !showFilters"
           size="small"
         />
+        <div class="sort-group">
+          <Dropdown
+            v-model="sortField"
+            :options="sortFieldOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="sort-dropdown"
+          />
+          <PrimeButton
+            :icon="sortOrder === 'asc' ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down'"
+            severity="secondary"
+            size="small"
+            @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+          />
+        </div>
       </div>
 
       <div v-if="showFilters" class="filter-grid">
@@ -140,6 +163,17 @@
       No streams match your filters
     </div>
 
+    <div class="load-more-container">
+      <PrimeButton
+        label="Load More"
+        icon="pi pi-chevron-down"
+        @click="loadMore"
+        :loading="isLoading"
+        :disabled="!hasNextPage"
+        severity="secondary"
+      />
+    </div>
+
     <PrimeDialog
       :visible="showModal"
       @update:visible="closeModal"
@@ -189,6 +223,7 @@ import PrimeDialog from 'primevue/dialog';
 import Password from 'primevue/password';
 import { useDarkMode } from '../composables/useDarkMode.js';
 import useCarData from '../composables/useCarData.js';
+import { fetchMockLobbies } from '../composables/mockDataService.js';
 
 export default {
   name: 'LandingPage',
@@ -221,11 +256,33 @@ export default {
   },
   data() {
     return {
+      // UI-bound filter values (pending — not applied until Search is pressed)
       searchQuery: '',
       showFilters: false,
       trackFilter: 'all',
       maxLastActive: 'all',
       maxTimeSinceCreation: 'all',
+
+      // Applied filter values (active after Search is pressed)
+      appliedSearchQuery: '',
+      appliedTrackFilter: 'all',
+      appliedMaxLastActive: 'all',
+      appliedMaxTimeSinceCreation: 'all',
+
+      // Sort state (applied immediately, no Search button needed)
+      sortField: 'last_active',
+      sortOrder: 'asc',
+      sortFieldOptions: [
+        { label: 'Last Active', value: 'last_active' },
+        { label: 'Created', value: 'created_at' },
+        { label: 'Name', value: 'lobby_name' },
+      ],
+
+      // Pagination state
+      currentPage: 1,
+      hasNextPage: false,
+      isLoading: false,
+
       selectedStream: null,
       passcode: '',
       error: '',
@@ -254,10 +311,10 @@ export default {
     };
   },
   async created() {
-    if (!this.useMockMode) {
-      await this.fetchStreams();
+    if (this.useMockMode) {
+      await this.fetchMockStreams();
     } else {
-      this.allStreams = this.getMockStreams();
+      await this.fetchStreams();
     }
   },
   computed: {
@@ -272,60 +329,84 @@ export default {
       ];
     },
     filteredStreams() {
-      return this.allStreams.filter(stream => {
-        if (this.searchQuery && !stream.lobby_name.toLowerCase().includes(this.searchQuery.toLowerCase())) {
+      // Search and time-based filters are applied server-side via the API.
+      // Only track filter is applied client-side.
+      const filtered = this.allStreams.filter(stream => {
+        if (this.appliedTrackFilter !== 'all' && stream.track_name !== this.appliedTrackFilter) {
           return false;
-        }
-
-        if (this.trackFilter !== 'all' && stream.track_name !== this.trackFilter) {
-          return false;
-        }
-
-        if (this.maxLastActive !== 'all') {
-          const lastActiveMinutes = this.getMinutesFromTimestamp(stream.last_active);
-          if (lastActiveMinutes > this.maxLastActive) {
-            return false;
-          }
-        }
-
-        if (this.maxTimeSinceCreation !== 'all') {
-          const creationMinutes = this.getMinutesFromTimestamp(stream.created_at);
-          if (creationMinutes > this.maxTimeSinceCreation) {
-            return false;
-          }
         }
 
         return true;
       });
+
+      const field = this.sortField;
+      const dir = this.sortOrder === 'asc' ? 1 : -1;
+
+      return filtered.sort((a, b) => {
+        const aVal = a[field];
+        const bVal = b[field];
+        if (typeof aVal === 'string') {
+          return dir * aVal.localeCompare(bVal);
+        }
+        return dir * (aVal - bVal);
+      });
     }
   },
   methods: {
-    getMockStreams() {
-      return [
-        {
-          id: 'mock-lobby-1',
-          lobby_name: 'Mock Racing Lobby',
-          track_name: 'Circuito de Navarra',
-          track_config: 'Speed Circuit Medium',
-          series_id: 491,
-          series_name: 'GT4 Challenge by Falken Tyre',
-          session_id: '12345',
-          subsession_id: '67890',
-          session_start_time: '2025-12-21 14:00:00',
-          team_name: 'Mock Team Racing',
-          car_model_id: 150,
-          player_car_number: 11,
-          last_active: (Date.now() - 2 * 60000) / 1000,
-          created_at: (Date.now() - 30 * 60000) / 1000,
+    async fetchMockStreams(page = 1, append = false) {
+      this.isLoading = true;
+      try {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 400));
+
+        const filters = {};
+        if (this.appliedSearchQuery) filters.search = this.appliedSearchQuery;
+        const lastActive = this.minutesToTimeString(this.appliedMaxLastActive);
+        if (lastActive) filters.lastactivetime = lastActive;
+        const creation = this.minutesToTimeString(this.appliedMaxTimeSinceCreation);
+        if (creation) filters.timefromcreation = creation;
+
+        const data = fetchMockLobbies(page, filters);
+
+        if (append) {
+          this.allStreams = [...this.allStreams, ...data.items];
+        } else {
+          this.allStreams = data.items;
         }
-      ];
+        this.currentPage = page;
+        this.hasNextPage = data.pagination.hasNextPage;
+      } finally {
+        this.isLoading = false;
+      }
     },
     getClassForStream(stream) {
       return this.getClassNameForCar(stream.series_id, stream.car_model_id);
     },
-    async fetchStreams() {
+    minutesToTimeString(minutes) {
+      if (minutes === 'all') return null;
+      if (minutes >= 1440) return `${Math.floor(minutes / 1440)}d`;
+      if (minutes >= 60) return `${Math.floor(minutes / 60)}h`;
+      return `${minutes}m`;
+    },
+    buildFetchUrl(page) {
+      const url = new URL(import.meta.env.VITE_LOBBIES_URL);
+      url.searchParams.set('page', page);
+
+      if (this.appliedSearchQuery) url.searchParams.set('search', this.appliedSearchQuery);
+
+      const lastActive = this.minutesToTimeString(this.appliedMaxLastActive);
+      if (lastActive) url.searchParams.set('lastactivetime', lastActive);
+
+      const creation = this.minutesToTimeString(this.appliedMaxTimeSinceCreation);
+      if (creation) url.searchParams.set('timefromcreation', creation);
+
+      return url.toString();
+    },
+    async fetchStreams(page = 1, append = false) {
+      this.isLoading = true;
       try {
-        const response = await fetch(import.meta.env.VITE_LOBBIES_URL);
+        const url = this.buildFetchUrl(page);
+        const response = await fetch(url);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -349,13 +430,51 @@ export default {
           created_at: 0
         };
 
-        this.allStreams = data.map(stream => ({
+        const items = (data.items || []).map(stream => ({
           ...requiredFields,
           ...stream
         }));
+
+        if (append) {
+          this.allStreams = [...this.allStreams, ...items];
+        } else {
+          this.allStreams = items;
+        }
+
+        this.currentPage = page;
+        this.hasNextPage = data.pagination?.hasNextPage ?? false;
       } catch (error) {
         console.error('Error fetching streams:', error);
-        this.allStreams = [];
+        if (!append) {
+          this.allStreams = [];
+        }
+        this.hasNextPage = false;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    applyFilters() {
+      // Copy pending filter values to applied
+      this.appliedSearchQuery = this.searchQuery;
+      this.appliedTrackFilter = this.trackFilter;
+      this.appliedMaxLastActive = this.maxLastActive;
+      this.appliedMaxTimeSinceCreation = this.maxTimeSinceCreation;
+
+      // Reset and fetch fresh from page 1
+      if (this.useMockMode) {
+        this.fetchMockStreams(1, false);
+      } else {
+        this.fetchStreams(1, false);
+      }
+    },
+    loadMore() {
+      if (this.hasNextPage && !this.isLoading) {
+        const nextPage = this.currentPage + 1;
+        if (this.useMockMode) {
+          this.fetchMockStreams(nextPage, true);
+        } else {
+          this.fetchStreams(nextPage, true);
+        }
       }
     },
     getMinutesFromTimestamp(timestamp) {
@@ -431,9 +550,9 @@ export default {
   watch: {
     useMockMode(newVal) {
       if (newVal) {
-        this.allStreams = this.getMockStreams();
+        this.fetchMockStreams(1, false);
       } else {
-        this.fetchStreams();
+        this.fetchStreams(1, false);
       }
     }
   }
@@ -510,6 +629,17 @@ export default {
   flex: 1;
 }
 
+.sort-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.sort-dropdown {
+  min-width: 140px;
+}
+
 .filter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -539,7 +669,7 @@ export default {
 
 .streams-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 1.5rem;
   width: 100%;
   margin-bottom: 2rem;
@@ -627,6 +757,12 @@ export default {
   font-size: 1.1rem;
 }
 
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0 2rem;
+}
+
 .modal-info {
   background: var(--primary-blue-light);
   padding: 1rem;
@@ -674,8 +810,18 @@ export default {
     gap: 0.75rem;
   }
 
+  .sort-group {
+    margin-left: 0;
+  }
+
   .streams-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1600px) {
+  .streams-grid {
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
   }
 }
 </style>
