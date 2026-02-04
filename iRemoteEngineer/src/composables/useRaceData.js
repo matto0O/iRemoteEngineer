@@ -111,7 +111,7 @@ export default function useRaceData(socket, authToken = null) {
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(message)
     } else if (socket && typeof socket.send === 'function') {
-      // For mock socket
+      // For demo socket
       socket.send(message)
     } else {
       console.warn("Cannot send command, socket not ready. ReadyState:", socket?.readyState)

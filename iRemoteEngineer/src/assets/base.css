@@ -48,8 +48,8 @@
   --border-color: #e0e0e0;
   --debug-bg: #f0f0f0;
   --debug-border: #cccccc;
-  --mock-banner-bg: #ffc107;
-  --mock-banner-text: #000000;
+  --demo-banner-bg: #ffc107;
+  --demo-banner-text: #000000;
 
   /* Component-specific light mode colors */
   --filter-content-bg: #f8f9fa;
@@ -103,8 +103,8 @@
   --border-color: #333333;
   --debug-bg: #1a1a1a;
   --debug-border: #333333;
-  --mock-banner-bg: #f59e0b;
-  --mock-banner-text: #000000;
+  --demo-banner-bg: #f59e0b;
+  --demo-banner-text: #000000;
 
   /* Component-specific dark mode colors */
   --filter-content-bg: #1a1a1a;

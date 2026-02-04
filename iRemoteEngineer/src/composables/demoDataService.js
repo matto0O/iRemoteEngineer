@@ -1,6 +1,6 @@
-// --- Mock lobby streams for the landing page ---
+// --- Demo lobby streams for the landing page ---
 
-const MOCK_TRACKS = [
+const DEMO_TRACKS = [
   { name: 'Circuito de Navarra', config: 'Speed Circuit Medium' },
   { name: 'Daytona International Speedway', config: 'Road Course' },
   { name: 'Spa-Francorchamps', config: 'Grand Prix' },
@@ -15,7 +15,7 @@ const MOCK_TRACKS = [
   { name: 'Laguna Seca', config: null },
 ];
 
-const MOCK_TEAMS = [
+const DEMO_TEAMS = [
   'Apex Racing', 'Red Mist Motorsport', 'Turn One Racing', 'Podium Chasers',
   'Gravel Trap Gang', 'Midnight Racers', 'Full Send Racing', 'Clean Air Co.',
   'DRS Enabled', 'Slipstream Society', 'Late Brakers Club', 'Pit Wall Heroes',
@@ -23,7 +23,7 @@ const MOCK_TEAMS = [
   'Aero Balance RC', 'Fuel Save FC', 'Blue Flag Brigade', 'Safety Car Summoners',
 ];
 
-const MOCK_SERIES = [
+const DEMO_SERIES = [
   { id: 491, name: 'GT4 Challenge by Falken Tyre' },
   { id: 305, name: 'IMSA Endurance Series' },
   { id: 232, name: 'VRS GT Sprint Series' },
@@ -31,20 +31,20 @@ const MOCK_SERIES = [
   { id: 189, name: 'Ferrari GT3 Challenge' },
 ];
 
-const MOCK_CAR_MODELS = [135, 146, 147, 150, 156, 157, 160, 173, 188, 189, 195];
+const DEMO_CAR_MODELS = [135, 146, 147, 150, 156, 157, 160, 173, 188, 189, 195];
 
-function generateMockLobbies() {
+function generateDemoLobbies() {
   const now = Date.now();
   const lobbies = [];
 
   for (let i = 1; i <= 51; i++) {
-    const track = MOCK_TRACKS[i % MOCK_TRACKS.length];
-    const series = MOCK_SERIES[i % MOCK_SERIES.length];
+    const track = DEMO_TRACKS[i % DEMO_TRACKS.length];
+    const series = DEMO_SERIES[i % DEMO_SERIES.length];
     const lastActiveAgo = (i * 3 + Math.floor(i / 5) * 10) * 60000; // stagger activity
     const createdAgo = lastActiveAgo + (30 + i * 5) * 60000;
 
     lobbies.push({
-      id: `mock-lobby-${i}`,
+      id: `demo-lobby-${i}`,
       lobby_name: `Lobby ${String(i).padStart(2, '0')} - ${track.name.split(' ')[0]}`,
       track_name: track.name,
       track_config: track.config || '',
@@ -53,8 +53,8 @@ function generateMockLobbies() {
       session_id: String(10000 + i),
       subsession_id: String(60000 + i),
       session_start_time: new Date(now - createdAgo).toISOString(),
-      team_name: MOCK_TEAMS[i % MOCK_TEAMS.length],
-      car_model_id: MOCK_CAR_MODELS[i % MOCK_CAR_MODELS.length],
+      team_name: DEMO_TEAMS[i % DEMO_TEAMS.length],
+      car_model_id: DEMO_CAR_MODELS[i % DEMO_CAR_MODELS.length],
       player_car_number: i,
       last_active: (now - lastActiveAgo) / 1000,
       created_at: (now - createdAgo) / 1000,
@@ -66,19 +66,19 @@ function generateMockLobbies() {
   return lobbies;
 }
 
-const allMockLobbies = generateMockLobbies();
+const allDemoLobbies = generateDemoLobbies();
 
 /**
- * Mock pagination function that mirrors the Lambda API response shape.
+ * Demo pagination function that mirrors the Lambda API response shape.
  * @param {number} page - 1-indexed page number
  * @param {Object} filters - { lastactivetime, timefromcreation }
  * @returns {Object} - { items, pagination, filters }
  */
-export function fetchMockLobbies(page = 1, filters = {}) {
+export function fetchDemoLobbies(page = 1, filters = {}) {
   const itemsPerPage = 25;
   const now = Date.now() / 1000;
 
-  let filtered = [...allMockLobbies];
+  let filtered = [...allDemoLobbies];
 
   // Apply time-based filters (matching Lambda logic)
   if (filters.lastactivetime) {
@@ -134,17 +134,17 @@ function parseTimeStr(str) {
   return null;
 }
 
-// --- Mock data service to simulate WebSocket updates ---
+// --- Demo data service to simulate WebSocket updates ---
 
-// Mock data service to simulate WebSocket updates
-export class MockDataService {
+// Demo data service to simulate WebSocket updates
+export class DemoDataService {
   constructor() {
     this.listeners = [];
     this.intervalId = null;
-    this.mockData = this.generateInitialMockData();
+    this.demoData = this.generateInitialDemoData();
   }
 
-  generateInitialMockData() {
+  generateInitialDemoData() {
     return {
       "lobby_name": "sdaf",
       "player_car_number": "11",
@@ -302,8 +302,8 @@ export class MockDataService {
         "gap_leader": 0.003,
         "in_pit": false,
         "lap": 0,
-        "team_name": "Mateusz Wozniak3",
-        "user_name": "Mateusz Wozniak3"
+        "team_name": "John Doe101",
+        "user_name": "John Doe101"
        },
        "14": {
         "car_class_position": 4,
@@ -503,7 +503,7 @@ export class MockDataService {
     // Emit initial data when handler is attached
     if (this.connected) {
       setTimeout(() => {
-        this.emit(this.mockData);
+        this.emit(this.demoData);
       }, 50);
     }
   }
@@ -517,9 +517,9 @@ export class MockDataService {
     });
   }
 
-  // Send command (mock)
+  // Send command (demo)
   send(command) {
-    console.log("Mock command sent:", command);
+    console.log("Demo command sent:", command);
   }
 
   // Disconnect

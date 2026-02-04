@@ -110,17 +110,6 @@
       </div>
     </div>
 
-    <!-- Debug info -->
-    <div v-if="true" class="debug-info">
-      <strong>Debug Info:</strong><br>
-      isConnected: {{ isConnected }}<br>
-      safeSocket: {{ safeSocket ? 'exists' : 'null' }}<br>
-      useMockMode: {{ useMockMode }}<br>
-      connectionError: {{ connectionError }}<br>
-      lobby_name: {{ lobby_name }}<br>
-      auth_token: {{ auth_token }}
-    </div>
-
     <div v-if="isConnected && safeSocket" class="dashboard-container">
       <!-- Main area: Car Tracker takes full width -->
       <div class="dashboard-main">
@@ -142,7 +131,7 @@
       </div>
     </div>
     <div v-else class="loading-container">
-      <p>{{ useMockMode ? 'Initializing mock data...' : 'Connecting to race data...' }}</p>
+      <p>{{ useDemoMode ? 'Initializing demo data...' : 'Connecting to race data...' }}</p>
       <p v-if="connectionError" class="error-message">{{ connectionError }}</p>
     </div>
 
@@ -174,7 +163,7 @@ const props = defineProps({
     type: String,
     required: true
   },
-  use_mock_mode: {
+  use_demo_mode: {
     type: Boolean,
     default: false
   }
@@ -182,12 +171,12 @@ const props = defineProps({
 
 defineEmits(['back-to-lobby']);
 
-const useMockMode = computed(() => props.use_mock_mode);
+const useDemoMode = computed(() => props.use_demo_mode);
 
 const { socket, isConnected, connectionError, connect } = useWebSocketConnection(
   props.lobby_name,
   props.auth_token,
-  props.use_mock_mode
+  props.use_demo_mode
 );
 
 const { isDarkMode, toggleDarkMode } = useDarkMode();
@@ -197,11 +186,11 @@ const showFeedback = ref(false);
 
 const safeSocket = computed(() => isConnected.value ? socket.value : null);
 
-// Attempt to reconnect if connection fails (only in non-mock mode)
+// Attempt to reconnect if connection fails (only in non-demo mode)
 const reconnectInterval = ref(null);
 
 onMounted(() => {
-  if (!props.use_mock_mode) {
+  if (!props.use_demo_mode) {
     reconnectInterval.value = setInterval(() => {
       if (!isConnected.value) {
         connect();
@@ -319,14 +308,6 @@ onBeforeUnmount(() => {
 
 .unit-btn {
   min-width: 80px;
-}
-
-.debug-info {
-  background: var(--debug-bg);
-  padding: 10px;
-  margin: 10px;
-  border: 1px solid var(--debug-border);
-  color: var(--text-primary);
 }
 
 /* Dashboard Grid Layout */

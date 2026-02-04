@@ -27,9 +27,9 @@
           size="small"
           class="dark-mode-toggle"
         />
-        <label class="mock-toggle">
-          <input type="checkbox" :checked="useMockMode" @change="$emit('update:useMockMode', $event.target.checked)" />
-          Use Mock Data
+        <label class="demo-toggle">
+          <input type="checkbox" :checked="useDemoMode" @change="$emit('update:useDemoMode', $event.target.checked)" />
+          Use Demo Data
         </label>
         <div class="results-count">
           Showing {{ filteredStreams.length }} of {{ allStreams.length }} streams
@@ -240,7 +240,7 @@ import PrimeDialog from 'primevue/dialog';
 import Password from 'primevue/password';
 import { useDarkMode } from '../composables/useDarkMode.js';
 import useCarData from '../composables/useCarData.js';
-import { fetchMockLobbies } from '../composables/mockDataService.js';
+import { fetchDemoLobbies } from '../composables/demoDataService.js';
 import FeedbackDialog from './FeedbackDialog.vue';
 
 export default {
@@ -256,12 +256,12 @@ export default {
     FeedbackDialog
   },
   props: {
-    useMockMode: {
+    useDemoMode: {
       type: Boolean,
       default: false
     }
   },
-  emits: ['lobby-selected', 'update:useMockMode'],
+  emits: ['lobby-selected', 'update:useDemoMode'],
   setup() {
     const { isDarkMode, toggleDarkMode } = useDarkMode();
     const { getSeriesName, getCarModelName, getClassNameForCar } = useCarData();
@@ -331,15 +331,15 @@ export default {
     };
   },
   async created() {
-    if (this.useMockMode) {
-      await this.fetchMockStreams();
+    if (this.useDemoMode) {
+      await this.fetchDemoStreams();
     } else {
       await this.fetchStreams();
     }
   },
   computed: {
     showModal() {
-      return this.selectedStream !== null && !this.useMockMode;
+      return this.selectedStream !== null && !this.useDemoMode;
     },
     trackOptions() {
       const tracks = [...new Set(this.allStreams.map(s => s.track_name))].sort();
@@ -373,7 +373,7 @@ export default {
     }
   },
   methods: {
-    async fetchMockStreams(page = 1, append = false) {
+    async fetchDemoStreams(page = 1, append = false) {
       this.isLoading = true;
       try {
         // Simulate network delay
@@ -386,7 +386,7 @@ export default {
         const creation = this.minutesToTimeString(this.appliedMaxTimeSinceCreation);
         if (creation) filters.timefromcreation = creation;
 
-        const data = fetchMockLobbies(page, filters);
+        const data = fetchDemoLobbies(page, filters);
 
         if (append) {
           this.allStreams = [...this.allStreams, ...data.items];
@@ -481,8 +481,8 @@ export default {
       this.appliedMaxTimeSinceCreation = this.maxTimeSinceCreation;
 
       // Reset and fetch fresh from page 1
-      if (this.useMockMode) {
-        this.fetchMockStreams(1, false);
+      if (this.useDemoMode) {
+        this.fetchDemoStreams(1, false);
       } else {
         this.fetchStreams(1, false);
       }
@@ -490,8 +490,8 @@ export default {
     loadMore() {
       if (this.hasNextPage && !this.isLoading) {
         const nextPage = this.currentPage + 1;
-        if (this.useMockMode) {
-          this.fetchMockStreams(nextPage, true);
+        if (this.useDemoMode) {
+          this.fetchDemoStreams(nextPage, true);
         } else {
           this.fetchStreams(nextPage, true);
         }
@@ -512,9 +512,9 @@ export default {
       return `${hours}h ago`;
     },
     selectStream(stream) {
-      if (this.useMockMode) {
-        // In mock mode, skip authentication
-        this.$emit('lobby-selected', { lobby_name: stream.lobby_name, auth_token: 'mock-token' });
+      if (this.useDemoMode) {
+        // In demo mode, skip authentication
+        this.$emit('lobby-selected', { lobby_name: stream.lobby_name, auth_token: 'demo-token' });
       } else {
         this.selectedStream = stream;
       }
@@ -568,9 +568,9 @@ export default {
     }
   },
   watch: {
-    useMockMode(newVal) {
+    useDemoMode(newVal) {
       if (newVal) {
-        this.fetchMockStreams(1, false);
+        this.fetchDemoStreams(1, false);
       } else {
         this.fetchStreams(1, false);
       }
@@ -612,7 +612,7 @@ export default {
   flex-shrink: 0;
 }
 
-.mock-toggle {
+.demo-toggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -621,7 +621,7 @@ export default {
   cursor: pointer;
 }
 
-.mock-toggle input[type="checkbox"] {
+.demo-toggle input[type="checkbox"] {
   cursor: pointer;
 }
 

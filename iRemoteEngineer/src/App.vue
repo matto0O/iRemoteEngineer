@@ -1,21 +1,21 @@
 <template>
   <div class="app-container">
-    <!-- Mock Mode Toggle -->
-    <div class="mock-mode-banner" v-if="useMockMode">
-      <span>🔧 MOCK MODE - Using simulated data</span>
+    <!-- Demo Mode Banner -->
+    <div class="demo-mode-banner" v-if="useDemoMode">
+      <span>🔧 DEMO MODE - Using simulated data</span>
     </div>
 
     <LandingPage
       v-if="!selectedLobbyName"
-      :useMockMode="useMockMode"
-      @update:useMockMode="useMockMode = $event"
+      :useDemoMode="useDemoMode"
+      @update:useDemoMode="useDemoMode = $event"
       @lobby-selected="onLobbySelected"
     />
     <EngineerPanel
       v-else
       :lobby_name="selectedLobbyName"
       :auth_token="authToken || ''"
-      :use_mock_mode="useMockMode"
+      :use_demo_mode="useDemoMode"
       @back-to-lobby="backToLobby"
     />
   </div>
@@ -33,7 +33,7 @@ export default {
   },
   data() {
     return {
-      useMockMode: false,
+      useDemoMode: false,
       selectedLobbyName: null,
       authToken: null
     };
@@ -58,9 +58,9 @@ export default {
   min-width: 100%;
 }
 
-.mock-mode-banner {
-  background: var(--mock-banner-bg);
-  color: var(--mock-banner-text);
+.demo-mode-banner {
+  background: var(--demo-banner-bg);
+  color: var(--demo-banner-text);
   text-align: center;
   padding: 0.5rem;
   font-weight: bold;
