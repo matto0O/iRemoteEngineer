@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 import json
 import logging
 from pathlib import Path
@@ -173,7 +173,7 @@ class PitSettingsWidget(ttk.Frame):
         warning_frame.grid(row=7, column=0, sticky=(tk.W, tk.E), pady=(20, 0))
 
         warning_icon = ttk.Label(
-            warning_frame, text="⚠", font=("Helvetica", 14), foreground="#ff6b00"
+            warning_frame, text="\u26a0", font=("Helvetica", 14), foreground="#ff6b00"
         )
         warning_icon.pack(side=tk.LEFT, padx=(0, 10))
 
@@ -214,12 +214,13 @@ class PitSettingsWidget(ttk.Frame):
         }
 
 
-def get_pit_settings_tab(notebook):
+def get_pit_settings_tab(notebook, status_bar):
     """
     Creates and returns the pit settings tab frame.
 
     Args:
         notebook: The parent ttk.Notebook widget
+        status_bar: The StatusBar widget for displaying status messages
 
     Returns:
         ttk.Frame: The configured pit settings tab frame
@@ -267,32 +268,25 @@ def get_pit_settings_tab(notebook):
         # Save to file
         if save_pit_settings(new_settings):
             status_label.config(
-                text="✓ Settings saved successfully", foreground="green"
+                text="\u2713 Settings saved successfully", foreground="green"
             )
             # Clear status message after 3 seconds
             frame.after(3000, lambda: status_label.config(text=""))
         else:
-            messagebox.showerror("Error", "Failed to save settings")
-            status_label.config(text="✗ Failed to save settings", foreground="red")
+            status_bar.set_status("Failed to save settings", "error")
+            status_label.config(text="\u2717 Failed to save settings", foreground="red")
 
     def reset_defaults():
         """Reset all settings to defaults"""
-        result = messagebox.askyesno(
-            "Reset to Defaults",
-            "Are you sure you want to reset all pit settings to their default values?\n\n"
-            "This will disable all remote pit control features.",
+        pit_widget.remote_control_var.set(
+            DEFAULT_SETTINGS["remote_pit_control_enabled"]
         )
-        if result:
-            # Update widget with default values
-            pit_widget.remote_control_var.set(
-                DEFAULT_SETTINGS["remote_pit_control_enabled"]
-            )
-            pit_widget.fuel_var.set(DEFAULT_SETTINGS["fuel_management_enabled"])
-            pit_widget.tyre_swap_var.set(DEFAULT_SETTINGS["tyre_swap_enabled"])
-            pit_widget.tyre_compound_var.set(DEFAULT_SETTINGS["tyre_compound_enabled"])
-            status_label.config(
-                text="Settings reset to defaults (not saved)", foreground="orange"
-            )
+        pit_widget.fuel_var.set(DEFAULT_SETTINGS["fuel_management_enabled"])
+        pit_widget.tyre_swap_var.set(DEFAULT_SETTINGS["tyre_swap_enabled"])
+        pit_widget.tyre_compound_var.set(DEFAULT_SETTINGS["tyre_compound_enabled"])
+        status_label.config(
+            text="Settings reset to defaults (not saved)", foreground="orange"
+        )
 
     # Buttons
     apply_button = ttk.Button(

@@ -1,12 +1,108 @@
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+from tkinter import ttk, scrolledtext
 import logging
+import sys
+from pathlib import Path
 
 from gui.streaming_tab import get_streaming_tab, is_streaming
 from gui.data_settings_tab import get_data_settings_tab
 from gui.pit_stop_settings_tab import get_pit_settings_tab
 from gui.feedback_tab import get_feedback_tab
 from gui.log_handler import GUILogHandler
+
+
+def _read_version():
+    """Read version from VERSION file"""
+    try:
+        if getattr(sys, "frozen", False):
+            base_path = Path(sys._MEIPASS)
+        else:
+            base_path = Path(__file__).resolve().parent.parent.parent
+        version_file = base_path / "VERSION"
+        return version_file.read_text().strip()
+    except Exception:
+        return "unknown"
+
+
+class StatusBar(tk.Frame):
+    """Footer status bar with version (left) and status messages (right)"""
+
+    SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+
+    def __init__(self, parent, version):
+        super().__init__(parent, relief=tk.SUNKEN, borderwidth=1)
+
+        # Version label (left)
+        self.version_label = tk.Label(
+            self, text=f"v{version}", anchor=tk.W, padx=8, pady=2,
+            font=("Helvetica", 9), fg="#555555",
+        )
+        self.version_label.pack(side=tk.LEFT)
+
+        # Status label (right)
+        self.status_label = tk.Label(
+            self, text="", anchor=tk.E, padx=8, pady=2,
+            font=("Helvetica", 9),
+        )
+        self.status_label.pack(side=tk.RIGHT)
+
+        # Spinner label (right, before status text)
+        self.spinner_label = tk.Label(
+            self, text="", anchor=tk.E, pady=2,
+            font=("Helvetica", 9),
+        )
+        self.spinner_label.pack(side=tk.RIGHT)
+
+        self._state = None
+        self._spinner_index = 0
+        self._spinner_after_id = None
+        self._clear_after_id = None
+
+    def set_status(self, message, state="loading"):
+        """Set status message with state: 'loading', 'success', or 'error'"""
+        # Cancel any pending clear/spinner
+        if self._spinner_after_id:
+            self.after_cancel(self._spinner_after_id)
+            self._spinner_after_id = None
+        if self._clear_after_id:
+            self.after_cancel(self._clear_after_id)
+            self._clear_after_id = None
+
+        self._state = state
+
+        if state == "loading":
+            self.spinner_label.config(text=self.SPINNER_CHARS[0], fg="#333333")
+            self.status_label.config(text=message, fg="#333333")
+            self._spinner_index = 0
+            self._animate_spinner()
+        elif state == "success":
+            self.spinner_label.config(text="✔ ", fg="#2e7d32")
+            self.status_label.config(text=message, fg="#2e7d32")
+            self._clear_after_id = self.after(5000, self.clear)
+        elif state == "error":
+            self.spinner_label.config(text="✖ ", fg="#c62828")
+            self.status_label.config(text=message, fg="#c62828")
+            self._clear_after_id = self.after(8000, self.clear)
+
+    def clear(self):
+        """Clear the status display"""
+        if self._spinner_after_id:
+            self.after_cancel(self._spinner_after_id)
+            self._spinner_after_id = None
+        if self._clear_after_id:
+            self.after_cancel(self._clear_after_id)
+            self._clear_after_id = None
+        self._state = None
+        self.spinner_label.config(text="")
+        self.status_label.config(text="")
+
+    def _animate_spinner(self):
+        """Animate the spinner character"""
+        if self._state != "loading":
+            return
+        self._spinner_index = (self._spinner_index + 1) % len(self.SPINNER_CHARS)
+        self.spinner_label.config(text=self.SPINNER_CHARS[self._spinner_index] + " ")
+        self._spinner_after_id = self.after(100, self._animate_spinner)
 
 
 class IracingDataGUI:
@@ -17,26 +113,34 @@ class IracingDataGUI:
         self.root.geometry("600x600")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
+        # Read version
+        version = _read_version()
+
+        # Create status bar (pack at bottom first so it stays there)
+        self.status_bar = StatusBar(self.root, version)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+
         # Create notebook for sections
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill=tk.BOTH, expand=True)
 
         # Streaming tab
-        self.streaming_frame = get_streaming_tab(self.notebook, debug=self.debug)
+        self.streaming_frame = get_streaming_tab(
+            self.notebook, self.status_bar, debug=self.debug
+        )
         self.notebook.add(self.streaming_frame, text="Streaming")
 
         # Data Settings tab
-        self.data_settings_frame = get_data_settings_tab(self.notebook)
+        self.data_settings_frame = get_data_settings_tab(
+            self.notebook, self.status_bar
+        )
         self.notebook.add(self.data_settings_frame, text="Data Settings")
 
         # Pit-stop tab
-        self.pit_settings_frame = get_pit_settings_tab(self.notebook)
+        self.pit_settings_frame = get_pit_settings_tab(
+            self.notebook, self.status_bar
+        )
         self.notebook.add(self.pit_settings_frame, text="Pit Settings")
-
-        # # System Settings tab
-        # self.system_settings_frame = ttk.Frame(self.notebook)
-        # self.notebook.add(self.system_settings_frame, text="System Settings")
-        # ttk.Label(self.system_settings_frame, text="System Settings Configuration").pack(pady=10)
 
         # Logs tab
         self.logs_frame = ttk.Frame(self.notebook)
@@ -50,33 +154,27 @@ class IracingDataGUI:
         self.setup_logging()
 
         # Feedback tab (after logging setup so log_text is ready)
-        self.feedback_frame = get_feedback_tab(self.notebook, self.log_text)
+        self.feedback_frame = get_feedback_tab(
+            self.notebook, self.log_text, self.status_bar
+        )
         self.notebook.add(self.feedback_frame, text="Feedback")
 
     def setup_logging(self):
         """Configure logging to write to the GUI log widget"""
-        # Create GUI handler
         gui_handler = GUILogHandler(self.log_text)
         gui_handler.setLevel(logging.INFO)
 
-        # Get root logger and configure it
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.INFO)
-
-        # Remove any existing handlers to avoid duplicates
         root_logger.handlers.clear()
-
-        # Add our GUI handler
         root_logger.addHandler(gui_handler)
 
-        # Log initial message
         logging.info("iRemoteEngineer logging initialized")
 
     def on_close(self):
         if is_streaming():
-            messagebox.showwarning(
-                "Cannot close",
-                "The stream is still running. Please stop the stream before exiting.",
+            self.status_bar.set_status(
+                "Stop streaming before closing the application", "error"
             )
-            return  # Prevent closing
-        self.root.destroy()  # Allow closing
+            return
+        self.root.destroy()

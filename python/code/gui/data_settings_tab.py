@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 import json
 import logging
 from pathlib import Path
@@ -186,7 +186,7 @@ class DataGroupWidget(ttk.Frame):
         # Info icon (using Unicode symbol)
         info_label = ttk.Label(
             right_frame,
-            text="ℹ️",
+            text="\u2139\ufe0f",
             font=("Helvetica", 14),
             cursor="question_arrow",
             foreground="#1976d2",
@@ -340,12 +340,13 @@ class DataGroupWidget(ttk.Frame):
             self.lap_radio.config(state=state)
 
 
-def get_data_settings_tab(notebook):
+def get_data_settings_tab(notebook, status_bar):
     """
     Creates and returns the data settings tab frame.
 
     Args:
         notebook: The parent ttk.Notebook widget
+        status_bar: The StatusBar widget for displaying status messages
 
     Returns:
         ttk.Frame: The configured data settings tab frame
@@ -441,9 +442,9 @@ def get_data_settings_tab(notebook):
             settings = widget.get_settings()
             if settings["enabled"] and settings["mode"] == "interval":
                 if settings["interval"] <= 0:
-                    messagebox.showerror(
-                        "Invalid Interval",
-                        f"Please enter a valid interval for {group_name.replace('_', ' ').title()}",
+                    status_bar.set_status(
+                        f"Invalid interval for {group_name.replace('_', ' ').title()}",
+                        "error",
                     )
                     return
 
@@ -455,30 +456,24 @@ def get_data_settings_tab(notebook):
         # Save to file
         if save_settings(new_settings):
             status_label.config(
-                text="✓ Settings saved successfully", foreground="green"
+                text="\u2713 Settings saved successfully", foreground="green"
             )
             # Clear status message after 3 seconds
             frame.after(3000, lambda: status_label.config(text=""))
         else:
-            messagebox.showerror("Error", "Failed to save settings")
-            status_label.config(text="✗ Failed to save settings", foreground="red")
+            status_bar.set_status("Failed to save settings", "error")
+            status_label.config(text="\u2717 Failed to save settings", foreground="red")
 
     def reset_defaults():
         """Reset all settings to defaults"""
-        result = messagebox.askyesno(
-            "Reset to Defaults",
-            "Are you sure you want to reset all settings to their default values?",
+        for group_name, widget in data_groups.items():
+            default = DEFAULT_SETTINGS[group_name]
+            widget.enabled_var.set(default["enabled"])
+            widget.mode_var.set(default["mode"])
+            widget.interval_var.set(str(default["interval"]))
+        status_label.config(
+            text="Settings reset to defaults (not saved)", foreground="orange"
         )
-        if result:
-            # Reload the tab with default settings
-            for group_name, widget in data_groups.items():
-                default = DEFAULT_SETTINGS[group_name]
-                widget.enabled_var.set(default["enabled"])
-                widget.mode_var.set(default["mode"])
-                widget.interval_var.set(str(default["interval"]))
-            status_label.config(
-                text="Settings reset to defaults (not saved)", foreground="orange"
-            )
 
     # Buttons
     apply_button = ttk.Button(

@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 import threading
 import logging
 import os
@@ -15,13 +15,14 @@ FEEDBACK_TYPES = [
 ]
 
 
-def get_feedback_tab(notebook, log_text_widget):
+def get_feedback_tab(notebook, log_text_widget, status_bar):
     """
     Creates and returns the feedback tab frame.
 
     Args:
         notebook: The parent ttk.Notebook widget
         log_text_widget: The ScrolledText widget from the Logs tab to grab log content
+        status_bar: The StatusBar widget for displaying status messages
 
     Returns:
         ttk.Frame: The configured feedback tab frame
@@ -59,7 +60,7 @@ def get_feedback_tab(notebook, log_text_widget):
         container,
         text="Submit Feedback",
         command=lambda: _submit(
-            frame, log_text_widget, type_combo, email_entry,
+            frame, log_text_widget, status_bar, type_combo, email_entry,
             topic_entry, description_text, submit_btn,
         ),
     )
@@ -75,14 +76,14 @@ def _get_type_value(display_text):
     return None
 
 
-def _submit(frame, log_text_widget, type_combo, email_entry,
+def _submit(frame, log_text_widget, status_bar, type_combo, email_entry,
             topic_entry, description_text, submit_btn):
     feedback_type = _get_type_value(type_combo.get())
     topic = topic_entry.get().strip()
     description = description_text.get("1.0", tk.END).strip()
 
     if not feedback_type or not topic or not description:
-        messagebox.showwarning("Missing fields", "Please fill in Type, Topic, and Description.")
+        status_bar.set_status("Please fill in Type, Topic, and Description", "error")
         return
 
     email = email_entry.get().strip() or None
@@ -92,7 +93,7 @@ def _submit(frame, log_text_widget, type_combo, email_entry,
 
     url = os.getenv("FEEDBACK_URL")
     if not url:
-        messagebox.showerror("Configuration Error", "FEEDBACK_URL is not set in .env")
+        status_bar.set_status("FEEDBACK_URL is not configured", "error")
         return
 
     payload = {
@@ -104,6 +105,7 @@ def _submit(frame, log_text_widget, type_combo, email_entry,
     }
 
     submit_btn.configure(state="disabled", text="Submitting...")
+    status_bar.set_status("Submitting feedback...", "loading")
 
     def do_request():
         try:
@@ -121,20 +123,21 @@ def _submit(frame, log_text_widget, type_combo, email_entry,
             issue_id = data.get("issue_id", "unknown")
 
             frame.after(0, lambda: _on_success(
-                frame, issue_id, type_combo, email_entry,
+                frame, issue_id, status_bar, type_combo, email_entry,
                 topic_entry, description_text, submit_btn,
             ))
 
         except Exception as e:
             logger.error(f"Feedback submission failed: {e}")
-            frame.after(0, lambda: _on_error(frame, submit_btn, str(e)))
+            frame.after(0, lambda: _on_error(status_bar, submit_btn, str(e)))
 
     threading.Thread(target=do_request, daemon=True).start()
 
 
-def _on_success(frame, issue_id, type_combo, email_entry,
+def _on_success(frame, issue_id, status_bar, type_combo, email_entry,
                 topic_entry, description_text, submit_btn):
     submit_btn.configure(state="normal", text="Submit Feedback")
+    status_bar.clear()
 
     # Clear form
     type_combo.set("")
@@ -142,9 +145,36 @@ def _on_success(frame, issue_id, type_combo, email_entry,
     topic_entry.delete(0, tk.END)
     description_text.delete("1.0", tk.END)
 
-    messagebox.showinfo("Feedback Submitted", f"Issue created: #{issue_id}")
+    # Show custom dialog with Copy Issue ID + OK buttons
+    dialog = tk.Toplevel(frame.winfo_toplevel())
+    dialog.title("Feedback Submitted")
+    dialog.geometry("350x130")
+    dialog.resizable(False, False)
+    dialog.transient(frame.winfo_toplevel())
+    dialog.grab_set()
+
+    ttk.Label(
+        dialog, text=f"Feedback submitted!\nIssue ID: #{issue_id}",
+        font=("Helvetica", 11), justify=tk.CENTER,
+    ).pack(pady=(20, 15))
+
+    btn_frame = ttk.Frame(dialog)
+    btn_frame.pack(pady=(0, 10))
+
+    def copy_issue_id():
+        dialog.clipboard_clear()
+        dialog.clipboard_append(f"#{issue_id}")
+        status_bar.set_status("Issue ID copied to clipboard", "success")
+
+    ttk.Button(
+        btn_frame, text="Copy Issue ID", command=copy_issue_id, width=15,
+    ).pack(side=tk.LEFT, padx=(0, 10))
+
+    ttk.Button(
+        btn_frame, text="OK", command=dialog.destroy, width=10,
+    ).pack(side=tk.LEFT)
 
 
-def _on_error(frame, submit_btn, error_msg):
+def _on_error(status_bar, submit_btn, error_msg):
     submit_btn.configure(state="normal", text="Submit Feedback")
-    messagebox.showerror("Submission Failed", f"Could not submit feedback.\n\n{error_msg}")
+    status_bar.set_status(f"Feedback submission failed: {error_msg}", "error")
