@@ -5,6 +5,7 @@ import logging
 from gui.streaming_tab import get_streaming_tab, is_streaming
 from gui.data_settings_tab import get_data_settings_tab
 from gui.pit_stop_settings_tab import get_pit_settings_tab
+from gui.feedback_tab import get_feedback_tab
 from gui.log_handler import GUILogHandler
 
 
@@ -47,6 +48,10 @@ class IracingDataGUI:
 
         # Set up logging to GUI
         self.setup_logging()
+
+        # Feedback tab (after logging setup so log_text is ready)
+        self.feedback_frame = get_feedback_tab(self.notebook, self.log_text)
+        self.notebook.add(self.feedback_frame, text="Feedback")
 
     def setup_logging(self):
         """Configure logging to write to the GUI log widget"""
