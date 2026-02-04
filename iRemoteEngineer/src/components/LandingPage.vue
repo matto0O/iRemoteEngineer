@@ -4,6 +4,21 @@
     <div class="compact-header">
       <h1>iRacing Data Streams</h1>
       <div class="controls">
+        <a href="https://github.com/matto0O/iRemoteEngineer/releases" target="_blank" rel="noopener noreferrer">
+          <PrimeButton
+            icon="pi pi-download"
+            label="Download Client"
+            severity="secondary"
+            size="small"
+          />
+        </a>
+        <PrimeButton
+          icon="pi pi-comment"
+          label="Feedback"
+          severity="secondary"
+          size="small"
+          @click="showFeedback = true"
+        />
         <PrimeButton
           :icon="isDarkMode ? 'pi pi-sun' : 'pi pi-moon'"
           @click="toggleDarkMode"
@@ -210,6 +225,8 @@
         />
       </template>
     </PrimeDialog>
+
+    <FeedbackDialog :visible="showFeedback" @update:visible="showFeedback = $event" />
   </div>
 </template>
 
@@ -224,6 +241,7 @@ import Password from 'primevue/password';
 import { useDarkMode } from '../composables/useDarkMode.js';
 import useCarData from '../composables/useCarData.js';
 import { fetchMockLobbies } from '../composables/mockDataService.js';
+import FeedbackDialog from './FeedbackDialog.vue';
 
 export default {
   name: 'LandingPage',
@@ -234,7 +252,8 @@ export default {
     Dropdown,
     RadioButton,
     PrimeDialog,
-    Password
+    Password,
+    FeedbackDialog
   },
   props: {
     useMockMode: {
@@ -283,6 +302,7 @@ export default {
       hasNextPage: false,
       isLoading: false,
 
+      showFeedback: false,
       selectedStream: null,
       passcode: '',
       error: '',

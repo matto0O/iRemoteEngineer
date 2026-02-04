@@ -13,6 +13,13 @@
       <h2 class="panel-title">Race Engineer Panel</h2>
       <div class="header-buttons">
         <Button
+          icon="pi pi-comment"
+          label="Feedback"
+          severity="secondary"
+          size="small"
+          @click="showFeedback = true"
+        />
+        <Button
           :icon="showUnitsSettings ? 'pi pi-cog' : 'pi pi-sliders-h'"
           label="Units"
           severity="secondary"
@@ -138,6 +145,8 @@
       <p>{{ useMockMode ? 'Initializing mock data...' : 'Connecting to race data...' }}</p>
       <p v-if="connectionError" class="error-message">{{ connectionError }}</p>
     </div>
+
+    <FeedbackDialog :visible="showFeedback" @update:visible="showFeedback = $event" />
   </div>
 </template>
 
@@ -150,6 +159,7 @@ import WeatherInfo from './WeatherInfo.vue';
 import PitSettings from './PitSettings.vue';
 import LapHistory from './LapHistory.vue';
 import Button from 'primevue/button';
+import FeedbackDialog from './FeedbackDialog.vue';
 import useWebSocketConnection from '../composables/createSocket.js';
 import { useDarkMode } from '../composables/useDarkMode.js';
 import { useUnits } from '../composables/useUnits.js';
@@ -183,6 +193,7 @@ const { socket, isConnected, connectionError, connect } = useWebSocketConnection
 const { isDarkMode, toggleDarkMode } = useDarkMode();
 const { useFahrenheit, useMph, useGallons, toggleTemp, toggleSpeed, toggleFuel } = useUnits();
 const showUnitsSettings = ref(false);
+const showFeedback = ref(false);
 
 const safeSocket = computed(() => isConnected.value ? socket.value : null);
 
