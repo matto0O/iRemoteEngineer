@@ -113,7 +113,7 @@ jobs:
         id: bump_version
         run: |
           # Read current version
-          $versionFile = "VERSION"
+          $versionFile = "python/VERSION"
           $currentVersion = Get-Content $versionFile -Raw
           $currentVersion = $currentVersion.Trim()
 
@@ -151,7 +151,7 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add VERSION
+          git add python/VERSION
           git commit -m "Bump version to ${{ steps.bump_version.outputs.new_version }} [skip ci]" || echo "No changes to commit"
           git push
 
