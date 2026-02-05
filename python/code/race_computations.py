@@ -456,7 +456,6 @@ def get_session_info(force_update=False):
         state.computation_helpers["last_lap"] = ir["Lap"]
         state.session_info.update(data)
         send_data("session_info", data, reset=True)
-        print(data)
 
 
 # TODO incorporate below
@@ -562,7 +561,7 @@ def execute_commands(topic, payload, **kwargs):
         elif "tc" in command:
             try:
                 tc = int(command.split(".")[1])
-                logger.warning(f"TC command not yet implemented: {tc}")
+                # logger.warning(f"TC command not yet implemented: {tc}")
                 # ir.pit_command(PitCommandMode., tc) # TODO cannot solve, need to use macros for tc
             except (ValueError, IndexError):
                 logger.error(f"Invalid tyre change command: {command}")
