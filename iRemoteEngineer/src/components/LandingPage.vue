@@ -12,6 +12,14 @@
             size="small"
           />
         </a>
+        <a href="https://buymeacoffee.com/iremoteengineer" target="_blank" rel="noopener noreferrer">
+          <PrimeButton
+            icon="pi pi-heart"
+            label="Support the project"
+            severity="secondary"
+            size="small"
+          />
+        </a>
         <PrimeButton
           icon="pi pi-comment"
           label="Feedback"

@@ -12,6 +12,14 @@
       />
       <h2 class="panel-title">Race Engineer Panel</h2>
       <div class="header-buttons">
+        <a href="https://buymeacoffee.com/iremoteengineer" target="_blank" rel="noopener noreferrer">
+          <Button
+            icon="pi pi-heart"
+            label="Support the project"
+            severity="secondary"
+            size="small"
+          />
+        </a>
         <Button
           icon="pi pi-comment"
           label="Feedback"
