@@ -2,7 +2,11 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext
 import logging
 import sys
+import threading
+import webbrowser
 from pathlib import Path
+
+import requests
 
 from gui.streaming_tab import get_streaming_tab, is_streaming
 from gui.data_settings_tab import get_data_settings_tab
@@ -22,6 +26,72 @@ def _read_version():
         return version_file.read_text().strip()
     except Exception:
         return "unknown"
+
+
+RELEASES_URL = "https://github.com/matto0O/iRemoteEngineer/releases"
+
+
+def _show_update_dialog(root, latest_version, mandatory):
+    """Show an update dialog. Mandatory blocks usage until update/exit."""
+    dialog = tk.Toplevel(root)
+    dialog.title("Update Required" if mandatory else "Update Available")
+    dialog.geometry("350x150")
+    dialog.resizable(False, False)
+    dialog.transient(root)
+    dialog.grab_set()
+
+    if mandatory:
+        msg = (f"A mandatory update is available (v{latest_version}).\n"
+               "Please download the new version to continue.")
+    else:
+        msg = (f"A new version is available (v{latest_version}).\n"
+               "You can continue or download the update.")
+
+    ttk.Label(
+        dialog, text=msg, font=("Helvetica", 11), justify=tk.CENTER,
+    ).pack(pady=(20, 15))
+
+    btn_frame = ttk.Frame(dialog)
+    btn_frame.pack(pady=(0, 10))
+
+    def open_releases():
+        webbrowser.open(RELEASES_URL)
+
+    ttk.Button(
+        btn_frame, text="Get New Release", command=open_releases, width=16,
+    ).pack(side=tk.LEFT, padx=(0, 10))
+
+    if mandatory:
+        dialog.protocol("WM_DELETE_WINDOW", root.destroy)
+        ttk.Button(
+            btn_frame, text="Exit", command=root.destroy, width=10,
+        ).pack(side=tk.LEFT)
+    else:
+        ttk.Button(
+            btn_frame, text="Dismiss", command=dialog.destroy, width=10,
+        ).pack(side=tk.LEFT)
+
+
+def _check_for_updates(root, local_version):
+    """Fetch the latest GitHub release and compare against the local version."""
+    try:
+        resp = requests.get(
+            "https://api.github.com/repos/matto0O/iRemoteEngineer/releases/latest",
+            timeout=5,
+        )
+        resp.raise_for_status()
+        tag = resp.json().get("tag_name", "").lstrip("v")
+
+        remote = tuple(int(x) for x in tag.split("."))
+        local = tuple(int(x) for x in local_version.split("."))
+
+        if remote == local:
+            return
+
+        mandatory = remote[0] != local[0] or remote[1] != local[1]
+        root.after(0, _show_update_dialog, root, tag, mandatory)
+    except Exception:
+        pass
 
 
 class StatusBar(tk.Frame):
@@ -158,6 +228,11 @@ class IracingDataGUI:
             self.notebook, self.log_text, self.status_bar
         )
         self.notebook.add(self.feedback_frame, text="Feedback")
+
+        # Check for updates in background
+        threading.Thread(
+            target=_check_for_updates, args=(self.root, version), daemon=True
+        ).start()
 
     def setup_logging(self):
         """Configure logging to write to the GUI log widget"""
