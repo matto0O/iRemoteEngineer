@@ -2,7 +2,7 @@
   <div class="landing-container">
     <!-- Compact header -->
     <div class="compact-header">
-      <h1>iRacing Data Streams</h1>
+      <h1>iRemoteEngineer</h1>
       <div class="controls">
         <a href="https://github.com/matto0O/iRemoteEngineer/releases" target="_blank" rel="noopener noreferrer">
           <PrimeButton

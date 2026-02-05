@@ -67,8 +67,5 @@ export default {
   text-align: center;
   padding: 0.5rem;
   font-weight: bold;
-  position: sticky;
-  top: 0;
-  z-index: 1000;
 }
 </style>
