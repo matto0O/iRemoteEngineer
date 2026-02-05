@@ -35,9 +35,16 @@ def _show_update_dialog(root, latest_version, mandatory):
     """Show an update dialog. Mandatory blocks usage until update/exit."""
     dialog = tk.Toplevel(root)
     dialog.title("Update Required" if mandatory else "Update Available")
-    dialog.geometry("350x150")
     dialog.resizable(False, False)
     dialog.transient(root)
+
+    # Center dialog over the main window
+    dw, dh = 350, 150
+    root.update_idletasks()
+    x = root.winfo_x() + (root.winfo_width() - dw) // 2
+    y = root.winfo_y() + (root.winfo_height() - dh) // 2
+    dialog.geometry(f"{dw}x{dh}+{x}+{y}")
+
     dialog.grab_set()
 
     if mandatory:

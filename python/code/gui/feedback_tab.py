@@ -146,11 +146,19 @@ def _on_success(frame, issue_id, status_bar, type_combo, email_entry,
     description_text.delete("1.0", tk.END)
 
     # Show custom dialog with Copy Issue ID + OK buttons
-    dialog = tk.Toplevel(frame.winfo_toplevel())
+    root = frame.winfo_toplevel()
+    dialog = tk.Toplevel(root)
     dialog.title("Feedback Submitted")
-    dialog.geometry("350x130")
     dialog.resizable(False, False)
-    dialog.transient(frame.winfo_toplevel())
+    dialog.transient(root)
+
+    # Center dialog over the main window
+    dw, dh = 350, 130
+    root.update_idletasks()
+    x = root.winfo_x() + (root.winfo_width() - dw) // 2
+    y = root.winfo_y() + (root.winfo_height() - dh) // 2
+    dialog.geometry(f"{dw}x{dh}+{x}+{y}")
+
     dialog.grab_set()
 
     ttk.Label(
