@@ -67,11 +67,24 @@ def create_lobby(
 
     iot_topic_url = os.getenv("IOT_TOPIC_URL")
     if True in pit_stop_settings.values():
-        subscribe_to_iot_topic(
-            topic=f"{lobby_name}/commands",
-            message_callback=callback_wrapper,
-            endpoint=iot_topic_url,
-        )
+        try:
+            subscribe_to_iot_topic(
+                topic=f"{lobby_name}/commands",
+                message_callback=callback_wrapper,
+                endpoint=iot_topic_url,
+            )
+        except Exception as e:
+            # IoT subscription failed — clean up the lobby we just created
+            logger.error(f"IoT subscription failed, deleting lobby: {e}")
+            try:
+                token = response_data.get("token")
+                requests.delete(
+                    create_lobby_url,
+                    data=json.dumps({"lobby_name": lobby_name, "token": token}),
+                )
+            except Exception as cleanup_err:
+                logger.error(f"Failed to delete lobby during cleanup: {cleanup_err}")
+            raise
 
     return response_data
 
