@@ -325,7 +325,7 @@ onBeforeUnmount(() => {
 
 .dashboard-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 0.8fr 1.2fr;
   gap: 1rem;
 }
 
