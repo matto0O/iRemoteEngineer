@@ -12,7 +12,7 @@
             @click="showCommandPreview = !showCommandPreview"
             size="small"
             severity="secondary"
-            :label="showCommandPreview ? 'Hide Preview' : 'Show Preview'"
+            :label="showCommandPreview ? 'Hide Command Preview' : 'Show Command Preview'"
             class="preview-toggle-btn"
           />
         </div>
@@ -77,7 +77,8 @@
               <Button
                 :label="isWetTyres ? 'Wet' : 'Dry'"
                 :class="isWetTyres ? 'p-button-info p-button-sm' : 'p-button-secondary p-button-sm'"
-                @click="toggleTyreType"
+                disabled
+                title="Unimplemented"
               />
             </div>
           </div>
@@ -208,8 +209,8 @@ const currentCommand = computed(() => {
     }
   })
 
-  // Tyre type
-  command.push(isWetTyres.value ? 'tc.2' : 'tc.1')
+  // // Tyre type
+  // command.push(isWetTyres.value ? 'tc.2' : 'tc.1')
 
   // Fuel
   if (!isRefueling.value) {
@@ -253,10 +254,6 @@ const toggleFastRepair = () => {
 
 const toggleWindshieldWiper = () => {
   windshieldWiper.value = !windshieldWiper.value
-}
-
-const toggleTyreType = () => {
-  isWetTyres.value = !isWetTyres.value
 }
 
 // Reset all
