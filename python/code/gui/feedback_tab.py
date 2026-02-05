@@ -6,6 +6,10 @@ import os
 import json
 import requests
 
+from gui.data_settings_tab import load_intervals
+from gui.pit_stop_settings_tab import load_pit_settings
+from gui.gui_main import _read_version
+
 logger = logging.getLogger(__name__)
 
 FEEDBACK_TYPES = [
@@ -88,8 +92,29 @@ def _submit(frame, log_text_widget, status_bar, type_combo, email_entry,
 
     email = email_entry.get().strip() or None
 
+    # Prepend settings to logs
+    settings_lines = [f"=== App v{_read_version()} ==="]
+    try:
+        pit = load_pit_settings()
+        settings_lines.append("Pit Stop Settings:")
+        for key, val in pit.items():
+            settings_lines.append(f"  {key}: {val}")
+    except Exception:
+        settings_lines.append("Pit Stop Settings: (failed to load)")
+
+    try:
+        data = load_intervals()
+        settings_lines.append("Data Settings:")
+        for key, val in data.items():
+            settings_lines.append(f"  {key}: {val}")
+    except Exception:
+        settings_lines.append("Data Settings: (failed to load)")
+
+    settings_lines.append("================\n")
+    settings_block = "\n".join(settings_lines)
+
     # Grab logs from the log widget
-    logs = log_text_widget.get("1.0", tk.END).strip()
+    logs = settings_block + log_text_widget.get("1.0", tk.END).strip()
 
     url = os.getenv("FEEDBACK_URL")
     if not url:
