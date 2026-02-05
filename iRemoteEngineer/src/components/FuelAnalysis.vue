@@ -100,7 +100,15 @@
                       :class="{ 'bar-high': bar.isHigh, 'bar-low': bar.isLow }"
                     ></div>
                   </div>
-                  <div class="bar-label">{{ bar.label }}</div>
+                </div>
+              </div>
+              <div class="chart-axis">
+                <div class="axis-line">
+                  <div class="axis-arrow"></div>
+                </div>
+                <div class="axis-labels">
+                  <span class="axis-label">last lap</span>
+                  <span class="axis-label">older laps</span>
                 </div>
               </div>
             </div>
@@ -278,13 +286,12 @@ const burnChartData = computed(() => {
   const maxVal = Math.max(...convertedValues);
   const range = maxVal - minVal || 1;
 
-  return convertedValues.map((value, index) => {
+  return convertedValues.map((value) => {
     const heightPercent = ((value - minVal) / range) * 70 + 30;
     return {
       value,
       displayValue: value.toFixed(2),
       height: heightPercent,
-      label: `-${index + 1}`,
       isHigh: value === maxVal && convertedValues.length > 1,
       isLow: value === minVal && convertedValues.length > 1
     };
@@ -408,7 +415,7 @@ const burnChartData = computed(() => {
   display: flex;
   gap: 0.75rem;
   align-items: flex-end;
-  height: 65px;
+  height: 100px;
 }
 
 .chart-bar-container {
@@ -430,7 +437,7 @@ const burnChartData = computed(() => {
 
 .bar-wrapper {
   width: 100%;
-  height: 45px;
+  height: 75px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -452,11 +459,41 @@ const burnChartData = computed(() => {
   background: linear-gradient(180deg, #28a745 0%, #5cb85c 100%);
 }
 
-.bar-label {
-  font-size: 0.85rem;
+.chart-axis {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+}
+
+.axis-line {
+  width: 100%;
+  height: 2px;
+  background: #adb5bd;
+  position: relative;
+}
+
+.axis-arrow {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid #adb5bd;
+}
+
+.axis-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.axis-label {
+  font-size: 0.7rem;
   font-weight: 600;
   color: #6c757d;
-  margin-top: 2px;
 }
 
 .summary-label {
