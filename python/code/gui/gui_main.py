@@ -1,10 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 import logging
-import sys
 import threading
 import webbrowser
-from pathlib import Path
 
 import requests
 
@@ -13,19 +11,7 @@ from gui.data_settings_tab import get_data_settings_tab
 from gui.pit_stop_settings_tab import get_pit_settings_tab
 from gui.feedback_tab import get_feedback_tab
 from gui.log_handler import GUILogHandler
-
-
-def _read_version():
-    """Read version from VERSION file"""
-    try:
-        if getattr(sys, "frozen", False):
-            base_path = Path(sys._MEIPASS)
-        else:
-            base_path = Path(__file__).resolve().parent.parent.parent
-        version_file = base_path / "VERSION"
-        return version_file.read_text().strip()
-    except Exception:
-        return "unknown"
+from gui.version import read_version
 
 
 RELEASES_URL = "https://github.com/matto0O/iRemoteEngineer/releases"
@@ -186,12 +172,13 @@ class IracingDataGUI:
     def __init__(self, root, debug=False):
         self.debug = debug
         self.root = root
+        self.root.iconbitmap(default="favicon.ico")
         self.root.title("iRemoteEngineer")
         self.root.geometry("600x600")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         # Read version
-        version = _read_version()
+        version = read_version()
 
         # Create status bar (pack at bottom first so it stays there)
         self.status_bar = StatusBar(self.root, version)

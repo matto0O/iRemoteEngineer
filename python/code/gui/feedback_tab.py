@@ -8,7 +8,7 @@ import requests
 
 from gui.data_settings_tab import load_intervals
 from gui.pit_stop_settings_tab import load_pit_settings
-from gui.gui_main import _read_version
+from gui.version import read_version
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ def _submit(frame, log_text_widget, status_bar, type_combo, email_entry,
     email = email_entry.get().strip() or None
 
     # Prepend settings to logs
-    settings_lines = [f"=== App v{_read_version()} ==="]
+    settings_lines = [f"=== App v{read_version()} ==="]
     try:
         pit = load_pit_settings()
         settings_lines.append("Pit Stop Settings:")
