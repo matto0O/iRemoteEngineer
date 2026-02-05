@@ -439,27 +439,6 @@ export class DemoDataService {
       "fuel": {
         "current_fuel_level": 45.5,
         "burn_history": [3.2, 3.4, 3.1, 3.3, 3.2],
-        "average_burn": 3.24,
-        "avg_laps_left_estimate": 14.04,
-        "avg_target_laps": 14,
-        "avg_floor_laps": 14,
-        "avg_floor_lap_target": 45.36,
-        "avg_ceil_laps": 15,
-        "avg_ceil_lap_target": 48.60,
-        "avg_one_lap_less_left": 13,
-        "avg_one_lap_less_target": 42.12,
-        "avg_one_lap_more_left": 15,
-        "avg_one_lap_more_target": 48.60,
-        "last_laps_left_estimate": 14.22,
-        "last_target_laps": 14,
-        "last_floor_laps": 14,
-        "last_floor_lap_target": 44.80,
-        "last_ceil_laps": 15,
-        "last_ceil_lap_target": 48.00,
-        "last_one_lap_less_left": 13,
-        "last_one_lap_less_target": 41.60,
-        "last_one_lap_more_left": 15,
-        "last_one_lap_more_target": 48.00
       },
       "event": [
         {
