@@ -8,7 +8,7 @@ import requests
 
 from gui.data_settings_tab import load_intervals
 from gui.pit_stop_settings_tab import load_pit_settings
-from gui.version import read_version
+from gui.gui_utils import read_version
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,7 @@ from gui.data_settings_tab import get_data_settings_tab
 from gui.pit_stop_settings_tab import get_pit_settings_tab
 from gui.feedback_tab import get_feedback_tab
 from gui.log_handler import GUILogHandler
-from gui.version import read_version
+from gui.gui_utils import read_version, get_base_path
 
 
 RELEASES_URL = "https://github.com/matto0O/iRemoteEngineer/releases"
@@ -172,7 +172,9 @@ class IracingDataGUI:
     def __init__(self, root, debug=False):
         self.debug = debug
         self.root = root
-        self.root.iconbitmap(default="favicon.ico")
+        icon_path = get_base_path() / "favicon.ico"
+        if icon_path.exists():
+            self.root.iconbitmap(default=str(icon_path))
         self.root.title("iRemoteEngineer")
         self.root.geometry("600x600")
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
