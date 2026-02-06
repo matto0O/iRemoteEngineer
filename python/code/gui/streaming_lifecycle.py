@@ -116,7 +116,7 @@ def _check_if_can_stream_to(token):
     result = response.status_code in [200, 201]
     if not result:
         logger.warning(f"Token validation failed - {response.text}")
-    return result
+    return result, response
 
 
 def _stop_streaming_reset_uuid(token):
@@ -144,7 +144,9 @@ def _start_threads(token, test_file=None):
 
     logger.info("iRacing connected")
 
-    if _check_if_can_stream_to(token):
+
+    can_stream_to, status_code = _check_if_can_stream_to(token)
+    if can_stream_to:
         StreamingThreadController.job_thread = threading.Thread(
             target=job_thread_func,
             args=(lambda: StreamingThreadController.stop_threads,),
@@ -158,6 +160,8 @@ def _start_threads(token, test_file=None):
         StreamingThreadController.job_thread.start()
         StreamingThreadController.ir_heartbeat_thread.start()
 
+    elif status_code.status_code == 409:
+        raise Exception("Lobby is currently being streamed to")
     else:
         raise Exception("Failed to validate streaming token")
 
@@ -178,9 +182,9 @@ def create_lobby_and_stream(
         logger.error("Failed to create lobby - no token received")
         raise ValueError("Failed to create lobby and obtain token")
 
-    logger.info(f"Lobby '{lobby_name}' created successfully")
-    StreamingThreadController.token = token
     _start_threads(token, test_file=test_file)
+    StreamingThreadController.token = token
+    logger.info(f"Lobby '{lobby_name}' created successfully")
 
 
 def join_lobby_and_stream(
@@ -199,6 +203,6 @@ def join_lobby_and_stream(
         logger.error("Failed to join lobby - no token received")
         raise ValueError("Failed to join lobby and obtain token")
 
-    logger.info(f"Joined lobby '{lobby_name}' successfully")
-    StreamingThreadController.token = token
     _start_threads(token, test_file=test_file)
+    StreamingThreadController.token = token
+    logger.info(f"Joined lobby '{lobby_name}' successfully")

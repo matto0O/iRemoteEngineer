@@ -125,7 +125,9 @@ def join_lobby(
 
     # Check if join failed (lobby doesn't exist or wrong credentials)
     response_data = response.json()
-    if response.status_code != 200 or response_data.get("error"):
+    if response.status_code == 409:
+        raise ValueError(f"Someone else is currently streaming to the lobby.")
+    elif response.status_code != 200 or response_data.get("error"):
         error_msg = response_data.get("error", "Unknown error occurred")
         raise ValueError(f"Failed to join lobby: {error_msg}")
 
