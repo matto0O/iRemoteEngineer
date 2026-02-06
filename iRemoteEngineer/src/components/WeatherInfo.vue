@@ -296,14 +296,14 @@ const tableData = computed(() => {
 }
 
 .weather-icon {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   color: white;
   flex-shrink: 0;
 }
@@ -318,7 +318,7 @@ const tableData = computed(() => {
 }
 
 .weather-label {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #6c757d;
   margin-bottom: 0;
@@ -327,14 +327,14 @@ const tableData = computed(() => {
 }
 
 .weather-value {
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-primary, #2c3e50);
   line-height: 1.1;
 }
 
 .weather-subvalue {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: #6c757d;
   margin-top: 0;
 }

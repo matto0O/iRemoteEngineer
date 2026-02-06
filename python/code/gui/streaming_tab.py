@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 import webbrowser
 import threading
 import logging
@@ -15,12 +15,13 @@ from gui.pit_stop_settings_tab import load_pit_settings
 logger = logging.getLogger(__name__)
 
 
-def get_streaming_tab(notebook, debug=False):
+def get_streaming_tab(notebook, status_bar, debug=False):
     """
     Creates and returns the streaming tab frame with lobby creation/joining functionality.
 
     Args:
         notebook: The parent ttk.Notebook widget
+        status_bar: The StatusBar widget for displaying status messages
 
     Returns:
         ttk.Frame: The configured streaming tab frame
@@ -87,6 +88,7 @@ def get_streaming_tab(notebook, debug=False):
         if start_enabled:
             start_button.config(state=tk.NORMAL)
             stop_button.config(state=tk.DISABLED)
+            copy_passcode_button.config(state=tk.DISABLED)
             lobby_name_entry.config(state=tk.NORMAL)
             passcode_entry.config(state=tk.NORMAL)
             create_radio.config(state=tk.NORMAL)
@@ -94,6 +96,7 @@ def get_streaming_tab(notebook, debug=False):
         else:
             start_button.config(state=tk.DISABLED)
             stop_button.config(state=tk.NORMAL)
+            copy_passcode_button.config(state=tk.NORMAL)
             lobby_name_entry.config(state=tk.DISABLED)
             passcode_entry.config(state=tk.DISABLED)
             create_radio.config(state=tk.DISABLED)
@@ -109,23 +112,21 @@ def get_streaming_tab(notebook, debug=False):
                 create_lobby_and_stream(
                     lobby_name, passcode, pit_stop_settings, test_file=test_file
                 )
-                message = f"Lobby created successfully!\n\nLobby Name: {lobby_name}\nPasscode: {passcode}\n\nShare the passcode with others to join."
             else:
                 join_lobby_and_stream(
                     lobby_name, passcode, pit_stop_settings, test_file=test_file
                 )
-                message = f"Successfully joined lobby!\n\nLobby Name: {lobby_name}\nPasscode: {passcode}"
 
-            # Use frame.after to safely show messagebox from background thread
-            frame.after(0, lambda: messagebox.showinfo("Streaming Started", message))
+            frame.after(
+                0, lambda: status_bar.set_status("Streaming started", "success")
+            )
 
         except Exception as e:
-            # Show error dialog
             logger.error(f"Failed to start streaming: {e}", exc_info=True)
             frame.after(
                 0,
-                lambda error=e: messagebox.showerror(
-                    "Error", f"Failed to start streaming:\n{str(error)}"
+                lambda error=e: status_bar.set_status(
+                    f"Failed to start streaming: {error}", "error"
                 ),
             )
             # Re-enable buttons on error
@@ -139,25 +140,17 @@ def get_streaming_tab(notebook, debug=False):
 
         # Validation
         if not lobby_name:
-            messagebox.showerror("Error", "Please enter a lobby name")
+            status_bar.set_status("Please enter a lobby name", "error")
             return
 
         if not passcode:
-            messagebox.showerror("Error", "Please enter a passcode")
+            status_bar.set_status("Please enter a passcode", "error")
             return
 
         if mode == "create":
-            # Create new lobby
-            messagebox.showinfo(
-                "Creating Lobby",
-                f"Creating lobby: {lobby_name}\n\nPlease wait while connecting to iRacing...",
-            )
+            status_bar.set_status(f"Creating lobby: {lobby_name}...", "loading")
         else:
-            # Join existing lobby
-            messagebox.showinfo(
-                "Joining Lobby",
-                f"Joining lobby: {lobby_name}\n\nPlease wait while connecting to iRacing...",
-            )
+            status_bar.set_status(f"Joining lobby: {lobby_name}...", "loading")
 
         # Disable buttons immediately
         toggle_buttons(start_enabled=False)
@@ -173,41 +166,39 @@ def get_streaming_tab(notebook, debug=False):
     def stop_streaming_thread():
         """Stop streaming in a separate thread"""
         try:
-            # Show immediate feedback
             frame.after(
                 0,
-                lambda: messagebox.showinfo(
-                    "Stopping", "Stopping streaming, please wait..."
-                ),
+                lambda: status_bar.set_status("Stopping streaming...", "loading"),
             )
 
-            # Call stop with timeout built-in
             StreamingThreadController.stop_all_threads()
 
-            # Always re-enable buttons after stop attempt (with or without timeout)
             frame.after(
-                0, lambda: messagebox.showinfo("Streaming Stopped", "Streaming stopped")
+                0, lambda: status_bar.set_status("Streaming stopped", "success")
             )
             frame.after(0, lambda: toggle_buttons(start_enabled=True))
 
         except Exception as e:
             frame.after(
                 0,
-                lambda: messagebox.showerror(
-                    "Error", f"Error stopping stream:\n{str(e)}"
+                lambda error=e: status_bar.set_status(
+                    f"Error stopping stream: {error}", "error"
                 ),
             )
-            # Still re-enable buttons even on error
             frame.after(0, lambda: toggle_buttons(start_enabled=True))
 
     def handle_stop():
         """Handle the stop button click"""
-        # Immediately disable stop button to prevent double-clicks
         stop_button.config(state=tk.DISABLED)
-
-        # Stop in background thread to avoid freezing
         stop_thread = threading.Thread(target=stop_streaming_thread, daemon=True)
         stop_thread.start()
+
+    def handle_copy_passcode():
+        """Copy the passcode to clipboard"""
+        passcode = passcode_entry.get()
+        frame.winfo_toplevel().clipboard_clear()
+        frame.winfo_toplevel().clipboard_append(passcode)
+        status_bar.set_status("Passcode copied to clipboard", "success")
 
     start_button = ttk.Button(
         button_frame, text="Start Streaming", command=handle_start, width=20
@@ -219,9 +210,18 @@ def get_streaming_tab(notebook, debug=False):
         text="Stop Streaming",
         command=handle_stop,
         width=20,
-        state=tk.DISABLED,  # Initially disabled until streaming starts
+        state=tk.DISABLED,
     )
-    stop_button.pack(side=tk.LEFT)
+    stop_button.pack(side=tk.LEFT, padx=(0, 10))
+
+    copy_passcode_button = ttk.Button(
+        button_frame,
+        text="Copy Passcode",
+        command=handle_copy_passcode,
+        width=15,
+        state=tk.DISABLED,
+    )
+    copy_passcode_button.pack(side=tk.LEFT)
 
     # ===== Web Interface Link =====
     web_frame = ttk.Frame(main_container)
@@ -233,7 +233,7 @@ def get_streaming_tab(notebook, debug=False):
         try:
             webbrowser.open(url)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to open browser: {str(e)}")
+            status_bar.set_status(f"Failed to open browser: {e}", "error")
 
     web_button = ttk.Button(
         web_frame, text="Open Web Interface", command=open_web_interface, width=25

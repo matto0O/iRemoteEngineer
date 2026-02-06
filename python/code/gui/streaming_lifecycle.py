@@ -115,9 +115,7 @@ def _check_if_can_stream_to(token):
     response = requests.patch(start_stop_url, body)
     result = response.status_code in [200, 201]
     if not result:
-        logger.warning(
-            f"Token validation failed - {response.text}"
-        )
+        logger.warning(f"Token validation failed - {response.text}")
     return result
 
 

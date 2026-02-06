@@ -67,11 +67,24 @@ def create_lobby(
 
     iot_topic_url = os.getenv("IOT_TOPIC_URL")
     if True in pit_stop_settings.values():
-        subscribe_to_iot_topic(
-            topic=f"{lobby_name}/commands",
-            message_callback=callback_wrapper,
-            endpoint=iot_topic_url,
-        )
+        try:
+            subscribe_to_iot_topic(
+                topic=f"{lobby_name}/commands",
+                message_callback=callback_wrapper,
+                endpoint=iot_topic_url,
+            )
+        except Exception as e:
+            # IoT subscription failed — clean up the lobby we just created
+            logger.error(f"Pit stop subscription failed, deleting lobby: {e}")
+            try:
+                token = response_data.get("token")
+                requests.delete(
+                    create_lobby_url,
+                    data=json.dumps({"lobby_name": lobby_name, "token": token}),
+                )
+            except Exception as cleanup_err:
+                logger.error(f"Failed to delete lobby during cleanup: {cleanup_err}")
+            raise
 
     return response_data
 
@@ -233,26 +246,22 @@ def subscribe_to_iot_topic(
         on_connection_resumed=on_connection_resumed,
     )
 
-    logger.info(f"Connecting to AWS IoT...")
     try:
         connect_future = mqtt_connection.connect()
         connect_future.result(timeout=30)
-        logger.info("Connected to AWS IoT successfully")
     except Exception as e:
-        logger.error(f"MQTT connection failed: {e}")
+        logger.error(f"Pit stop connection failed: {e}")
         raise
 
     # Subscribe to topic
-    logger.info(f"Subscribing to topic: {topic}")
     try:
         subscribe_future, _ = mqtt_connection.subscribe(
             topic=topic, qos=mqtt.QoS.AT_LEAST_ONCE, callback=message_callback
         )
 
         subscribe_future.result(timeout=10)
-        logger.info(f"Subscribed to command topic successfully")
     except Exception as e:
-        logger.error(f"MQTT subscription failed: {e}")
+        logger.error(f"Pit stop subscription failed: {e}")
         mqtt_connection.disconnect()
         raise
 
@@ -299,10 +308,8 @@ def disconnect_iot(mqtt_connection):
     Args:
         mqtt_connection: Active MQTT connection to disconnect
     """
-    logger.info("Disconnecting from IoT Core...")
     disconnect_future = mqtt_connection.disconnect()
     disconnect_future.result()
-    logger.info("Disconnected from IoT Core")
 
 
 def disconnect_all_iot():
@@ -314,7 +321,7 @@ def disconnect_all_iot():
 
     if len(_active_mqtt_connections) > 0:
         logger.info(
-            f"Disconnecting {len(_active_mqtt_connections)} MQTT connection(s)..."
+            f"Disconnecting {len(_active_mqtt_connections)} pit stop connection(s)..."
         )
 
     for conn_info in _active_mqtt_connections:
@@ -322,6 +329,6 @@ def disconnect_all_iot():
             disconnect_future = conn_info["connection"].disconnect()
             disconnect_future.result(timeout=5)
         except Exception as e:
-            logger.error(f"Error disconnecting MQTT: {e}")
+            logger.error(f"Error disconnecting pit stops: {e}")
 
     _active_mqtt_connections.clear()

@@ -1,12 +1,150 @@
-// Mock data service to simulate WebSocket updates
-export class MockDataService {
+// --- Demo lobby streams for the landing page ---
+
+const DEMO_TRACKS = [
+  { name: 'Circuito de Navarra', config: 'Speed Circuit Medium' },
+  { name: 'Daytona International Speedway', config: 'Road Course' },
+  { name: 'Spa-Francorchamps', config: 'Grand Prix' },
+  { name: 'Nürburgring', config: 'Nordschleife' },
+  { name: 'Suzuka International Racing Course', config: 'Grand Prix' },
+  { name: 'Mount Panorama Circuit', config: null },
+  { name: 'Watkins Glen International', config: 'Boot' },
+  { name: 'Monza', config: 'Grand Prix' },
+  { name: 'Interlagos', config: null },
+  { name: 'Silverstone', config: 'Grand Prix' },
+  { name: 'Circuit of the Americas', config: 'Grand Prix' },
+  { name: 'Laguna Seca', config: null },
+];
+
+const DEMO_TEAMS = [
+  'Apex Racing', 'Red Mist Motorsport', 'Turn One Racing', 'Podium Chasers',
+  'Gravel Trap Gang', 'Midnight Racers', 'Full Send Racing', 'Clean Air Co.',
+  'DRS Enabled', 'Slipstream Society', 'Late Brakers Club', 'Pit Wall Heroes',
+  'Sector 3 Speed', 'Tyre Whisperers', 'Draft Kings Racing', 'Chicane Cutters',
+  'Aero Balance RC', 'Fuel Save FC', 'Blue Flag Brigade', 'Safety Car Summoners',
+];
+
+const DEMO_SERIES = [
+  { id: 491, name: 'GT4 Challenge by Falken Tyre' },
+  { id: 305, name: 'IMSA Endurance Series' },
+  { id: 232, name: 'VRS GT Sprint Series' },
+  { id: 411, name: 'Porsche Cup by Coach Dave' },
+  { id: 189, name: 'Ferrari GT3 Challenge' },
+];
+
+const DEMO_CAR_MODELS = [135, 146, 147, 150, 156, 157, 160, 173, 188, 189, 195];
+
+function generateDemoLobbies() {
+  const now = Date.now();
+  const lobbies = [];
+
+  for (let i = 1; i <= 51; i++) {
+    const track = DEMO_TRACKS[i % DEMO_TRACKS.length];
+    const series = DEMO_SERIES[i % DEMO_SERIES.length];
+    const lastActiveAgo = (i * 3 + Math.floor(i / 5) * 10) * 60000; // stagger activity
+    const createdAgo = lastActiveAgo + (30 + i * 5) * 60000;
+
+    lobbies.push({
+      id: `demo-lobby-${i}`,
+      lobby_name: `Lobby ${String(i).padStart(2, '0')} - ${track.name.split(' ')[0]}`,
+      track_name: track.name,
+      track_config: track.config || '',
+      series_id: series.id,
+      series_name: series.name,
+      session_id: String(10000 + i),
+      subsession_id: String(60000 + i),
+      session_start_time: new Date(now - createdAgo).toISOString(),
+      team_name: DEMO_TEAMS[i % DEMO_TEAMS.length],
+      car_model_id: DEMO_CAR_MODELS[i % DEMO_CAR_MODELS.length],
+      player_car_number: i,
+      last_active: (now - lastActiveAgo) / 1000,
+      created_at: (now - createdAgo) / 1000,
+    });
+  }
+
+  // Sort by last_active descending (most recent first)
+  lobbies.sort((a, b) => b.last_active - a.last_active);
+  return lobbies;
+}
+
+const allDemoLobbies = generateDemoLobbies();
+
+/**
+ * Demo pagination function that mirrors the Lambda API response shape.
+ * @param {number} page - 1-indexed page number
+ * @param {Object} filters - { lastactivetime, timefromcreation }
+ * @returns {Object} - { items, pagination, filters }
+ */
+export function fetchDemoLobbies(page = 1, filters = {}) {
+  const itemsPerPage = 25;
+  const now = Date.now() / 1000;
+
+  let filtered = [...allDemoLobbies];
+
+  // Apply time-based filters (matching Lambda logic)
+  if (filters.lastactivetime) {
+    const seconds = parseTimeStr(filters.lastactivetime);
+    if (seconds) {
+      const threshold = now - seconds;
+      filtered = filtered.filter(l => l.last_active >= threshold);
+    }
+  }
+
+  if (filters.timefromcreation) {
+    const seconds = parseTimeStr(filters.timefromcreation);
+    if (seconds) {
+      const threshold = now - seconds;
+      filtered = filtered.filter(l => l.created_at >= threshold);
+    }
+  }
+
+  if (filters.search) {
+    const searchLower = filters.search.toLowerCase();
+    filtered = filtered.filter(l => l.lobby_name.toLowerCase().includes(searchLower));
+  }
+
+  const startIdx = (page - 1) * itemsPerPage;
+  const endIdx = startIdx + itemsPerPage;
+  const items = filtered.slice(startIdx, endIdx);
+
+  return {
+    items,
+    pagination: {
+      currentPage: page,
+      itemsPerPage,
+      hasNextPage: endIdx < filtered.length,
+      hasPreviousPage: page > 1,
+    },
+    filters: {
+      lobby: null,
+      lastActiveTime: filters.lastactivetime || null,
+      timeFromCreation: filters.timefromcreation || null,
+      search: filters.search || null,
+    },
+  };
+}
+
+function parseTimeStr(str) {
+  if (!str) return null;
+  const unit = str.slice(-1);
+  const value = parseInt(str.slice(0, -1), 10);
+  if (isNaN(value)) return null;
+  if (unit === 'm') return value * 60;
+  if (unit === 'h') return value * 3600;
+  if (unit === 'd') return value * 86400;
+  return null;
+}
+
+// --- Demo data service to simulate WebSocket updates ---
+
+// Demo data service to simulate WebSocket updates
+export class DemoDataService {
   constructor() {
     this.listeners = [];
     this.intervalId = null;
-    this.mockData = this.generateInitialMockData();
+    this.demoData = this.generateInitialDemoData();
   }
 
-  generateInitialMockData() {
+  generateInitialDemoData() {
     return {
       "lobby_name": "sdaf",
       "player_car_number": "11",
@@ -164,8 +302,8 @@ export class MockDataService {
         "gap_leader": 0.003,
         "in_pit": false,
         "lap": 0,
-        "team_name": "Mateusz Wozniak3",
-        "user_name": "Mateusz Wozniak3"
+        "team_name": "John Doe101",
+        "user_name": "John Doe101"
        },
        "14": {
         "car_class_position": 4,
@@ -212,31 +350,31 @@ export class MockDataService {
       },
       "lap_history": [
         {
-          "driver_name": "Mateusz Woźniak",
+          "driver_name": "John Smith",
           "fuel_consumed": 3.4,
           "incidents_incurred": 2,
           "lap_time": "1:34.990"
         },
         {
-          "driver_name": "Tanguy Francheateau",
+          "driver_name": "Jean Petit",
           "fuel_consumed": 3.2,
           "incidents_incurred": 1,
           "lap_time": "1:34.021"
         },
         {
-          "driver_name": "Tanguy Francheateau",
+          "driver_name": "Jean Petit",
           "fuel_consumed": 3.2,
           "incidents_incurred": 1,
           "lap_time": "1:32.021"
         },
         {
-          "driver_name": "Mateusz Woźniak",
+          "driver_name": "John Smith",
           "fuel_consumed": 3.3,
           "incidents_incurred": 0,
           "lap_time": "1:33.211"
         },
         {
-          "driver_name": "Mateusz Woźniak",
+          "driver_name": "John Smith",
           "fuel_consumed": 3.1,
           "incidents_incurred": 3,
           "lap_time": "1:31.551"
@@ -301,27 +439,6 @@ export class MockDataService {
       "fuel": {
         "current_fuel_level": 45.5,
         "burn_history": [3.2, 3.4, 3.1, 3.3, 3.2],
-        "average_burn": 3.24,
-        "avg_laps_left_estimate": 14.04,
-        "avg_target_laps": 14,
-        "avg_floor_laps": 14,
-        "avg_floor_lap_target": 45.36,
-        "avg_ceil_laps": 15,
-        "avg_ceil_lap_target": 48.60,
-        "avg_one_lap_less_left": 13,
-        "avg_one_lap_less_target": 42.12,
-        "avg_one_lap_more_left": 15,
-        "avg_one_lap_more_target": 48.60,
-        "last_laps_left_estimate": 14.22,
-        "last_target_laps": 14,
-        "last_floor_laps": 14,
-        "last_floor_lap_target": 44.80,
-        "last_ceil_laps": 15,
-        "last_ceil_lap_target": 48.00,
-        "last_one_lap_less_left": 13,
-        "last_one_lap_less_target": 41.60,
-        "last_one_lap_more_left": 15,
-        "last_one_lap_more_target": 48.00
       },
       "event": [
         {
@@ -365,7 +482,7 @@ export class MockDataService {
     // Emit initial data when handler is attached
     if (this.connected) {
       setTimeout(() => {
-        this.emit(this.mockData);
+        this.emit(this.demoData);
       }, 50);
     }
   }
@@ -379,9 +496,9 @@ export class MockDataService {
     });
   }
 
-  // Send command (mock)
+  // Send command (demo)
   send(command) {
-    console.log("Mock command sent:", command);
+    console.log("Demo command sent:", command);
   }
 
   // Disconnect

@@ -78,21 +78,25 @@
           :rowClass="getRowClass"
           tableStyle="width: 100%;"
         >
-          <Column field="lapNumber" header="Lap" sortable style="width: 50px; max-width: 50px;"></Column>
-          <Column field="driver_name" header="Driver" sortable style="min-width: 80px;"></Column>
-          <Column field="lap_time" header="Time" sortable style="width: 80px; max-width: 80px;">
+          <Column field="lapNumber" header="Lap" sortable style="width: 10%;"></Column>
+          <Column field="driver_name" header="Driver" sortable style="width: 60%;">
+            <template #body="slotProps">
+              <div class="driver-cell">{{ slotProps.data.driver_name }}</div>
+            </template>
+          </Column>
+          <Column field="lap_time" header="Time" sortable style="width: 12%;">
             <template #body="slotProps">
               <div class="time-cell">{{ slotProps.data.lap_time }}</div>
             </template>
           </Column>
-          <Column field="fuel_consumed" header="Fuel" sortable style="width: 70px; max-width: 70px;">
+          <Column field="fuel_consumed" header="Fuel" sortable style="width: 10%;">
             <template #body="slotProps">
               <div :class="getFuelCellClass(slotProps.data)">
                 {{ convertFuel(slotProps.data.fuel_consumed).toFixed(2) }}
               </div>
             </template>
           </Column>
-          <Column field="incidents_incurred" header="Inc" sortable style="width: 40px; max-width: 40px;">
+          <Column field="incidents_incurred" header="Inc" sortable style="width: 8%;">
             <template #body="slotProps">
               <div :class="['incident-cell', { 'has-incident': slotProps.data.incidents_incurred > 0 }]">
                 {{ slotProps.data.incidents_incurred }}
@@ -626,7 +630,7 @@ const statistics = computed(() => {
 .lap-history-table-container {
   max-height: 350px;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   margin-bottom: 0.75rem;
   border: 1px solid #eee;
   border-radius: 4px;
@@ -638,7 +642,12 @@ const statistics = computed(() => {
 }
 
 :deep(.p-datatable) {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
+}
+
+:deep(.p-datatable-table) {
+  table-layout: fixed;
+  width: 100% !important;
 }
 
 :deep(.p-datatable .p-datatable-thead > tr > th) {
@@ -648,11 +657,11 @@ const statistics = computed(() => {
   top: 0;
   z-index: 1;
   border-bottom: 2px solid #ddd;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
 }
 
 :deep(.p-datatable .p-datatable-tbody > tr > td) {
-  padding: 0.35rem 0.5rem;
+  padding: 0.4rem 0.5rem;
   border-bottom: 1px solid #eee;
 }
 
@@ -673,14 +682,20 @@ const statistics = computed(() => {
   box-shadow: inset 0 0 0 2px #81c784;
 }
 
+.driver-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .time-cell {
   font-family: monospace;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }
 
 .fuel-cell {
   font-family: monospace;
-  text-align: right;
+  text-align: center;
 }
 
 .fuel-cell.lowest-fuel {
@@ -749,7 +764,7 @@ const statistics = computed(() => {
 }
 
 .stat-label {
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   color: #6c757d;
   font-weight: 600;
   text-transform: uppercase;
@@ -757,7 +772,7 @@ const statistics = computed(() => {
 }
 
 .stat-value {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #2c3e50;
   font-family: monospace;
