@@ -144,7 +144,6 @@ def _start_threads(token, test_file=None):
 
     logger.info("iRacing connected")
 
-
     can_stream_to, status_code = _check_if_can_stream_to(token)
     if can_stream_to:
         StreamingThreadController.job_thread = threading.Thread(
