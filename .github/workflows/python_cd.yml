@@ -102,8 +102,8 @@ jobs:
           $commitMessage = git log -1 --format=%s ${{ github.event.workflow_run.head_sha }}
           Write-Host "Head commit message: $commitMessage"
 
-          # GitHub merge commits start with "Merge pull request #"
-          if ($commitMessage -match "^Merge pull request #") {
+          # GitHub merge commits start with "Minor update #"
+          if ($commitMessage -match "^Minor update #") {
             echo "bump_type=minor" >> $env:GITHUB_OUTPUT
             Write-Host "Detected PR merge -> minor bump"
           } else {
