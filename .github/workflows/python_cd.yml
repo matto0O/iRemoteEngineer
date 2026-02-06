@@ -98,15 +98,17 @@ jobs:
       - name: Determine version bump type
         id: version_type
         run: |
-          $eventName = "${{ github.event.workflow_run.event }}"
-          Write-Host "Event name: $eventName"
+          # Check if the head commit is a merge commit (PR merge)
+          $commitMessage = git log -1 --format=%s ${{ github.event.workflow_run.head_sha }}
+          Write-Host "Head commit message: $commitMessage"
 
-          # If the workflow was triggered by a PR event, bump minor version
-          # Otherwise (regular push), bump patch version
-          if ($eventName -eq "pull_request") {
+          # GitHub merge commits start with "Merge pull request #"
+          if ($commitMessage -match "^Merge pull request #") {
             echo "bump_type=minor" >> $env:GITHUB_OUTPUT
+            Write-Host "Detected PR merge -> minor bump"
           } else {
             echo "bump_type=patch" >> $env:GITHUB_OUTPUT
+            Write-Host "Detected direct push -> patch bump"
           }
 
       - name: Bump version
