@@ -13,7 +13,6 @@ from gui.feedback_tab import get_feedback_tab
 from gui.log_handler import GUILogHandler
 from gui.gui_utils import read_version, get_base_path
 
-
 RELEASES_URL = "https://github.com/matto0O/iRemoteEngineer/releases"
 
 
@@ -34,14 +33,21 @@ def _show_update_dialog(root, latest_version, mandatory):
     dialog.grab_set()
 
     if mandatory:
-        msg = (f"A mandatory update is available (v{latest_version}).\n"
-               "Please download the new version to continue.")
+        msg = (
+            f"A mandatory update is available (v{latest_version}).\n"
+            "Please download the new version to continue."
+        )
     else:
-        msg = (f"A new version is available (v{latest_version}).\n"
-               "You can continue or download the update.")
+        msg = (
+            f"A new version is available (v{latest_version}).\n"
+            "You can continue or download the update."
+        )
 
     ttk.Label(
-        dialog, text=msg, font=("Helvetica", 11), justify=tk.CENTER,
+        dialog,
+        text=msg,
+        font=("Helvetica", 11),
+        justify=tk.CENTER,
     ).pack(pady=(20, 15))
 
     btn_frame = ttk.Frame(dialog)
@@ -51,17 +57,26 @@ def _show_update_dialog(root, latest_version, mandatory):
         webbrowser.open(RELEASES_URL)
 
     ttk.Button(
-        btn_frame, text="Get New Release", command=open_releases, width=16,
+        btn_frame,
+        text="Get New Release",
+        command=open_releases,
+        width=16,
     ).pack(side=tk.LEFT, padx=(0, 10))
 
     if mandatory:
         dialog.protocol("WM_DELETE_WINDOW", root.destroy)
         ttk.Button(
-            btn_frame, text="Exit", command=root.destroy, width=10,
+            btn_frame,
+            text="Exit",
+            command=root.destroy,
+            width=10,
         ).pack(side=tk.LEFT)
     else:
         ttk.Button(
-            btn_frame, text="Dismiss", command=dialog.destroy, width=10,
+            btn_frame,
+            text="Dismiss",
+            command=dialog.destroy,
+            width=10,
         ).pack(side=tk.LEFT)
 
 
@@ -97,21 +112,33 @@ class StatusBar(tk.Frame):
 
         # Version label (left)
         self.version_label = tk.Label(
-            self, text=f"v{version}", anchor=tk.W, padx=8, pady=2,
-            font=("Helvetica", 9), fg="#555555",
+            self,
+            text=f"v{version}",
+            anchor=tk.W,
+            padx=8,
+            pady=2,
+            font=("Helvetica", 9),
+            fg="#555555",
         )
         self.version_label.pack(side=tk.LEFT)
 
         # Status label (right)
         self.status_label = tk.Label(
-            self, text="", anchor=tk.E, padx=8, pady=2,
+            self,
+            text="",
+            anchor=tk.E,
+            padx=8,
+            pady=2,
             font=("Helvetica", 9),
         )
         self.status_label.pack(side=tk.RIGHT)
 
         # Spinner label (right, before status text)
         self.spinner_label = tk.Label(
-            self, text="", anchor=tk.E, pady=2,
+            self,
+            text="",
+            anchor=tk.E,
+            pady=2,
             font=("Helvetica", 9),
         )
         self.spinner_label.pack(side=tk.RIGHT)
@@ -197,15 +224,11 @@ class IracingDataGUI:
         self.notebook.add(self.streaming_frame, text="Streaming")
 
         # Data Settings tab
-        self.data_settings_frame = get_data_settings_tab(
-            self.notebook, self.status_bar
-        )
+        self.data_settings_frame = get_data_settings_tab(self.notebook, self.status_bar)
         self.notebook.add(self.data_settings_frame, text="Data Settings")
 
         # Pit-stop tab
-        self.pit_settings_frame = get_pit_settings_tab(
-            self.notebook, self.status_bar
-        )
+        self.pit_settings_frame = get_pit_settings_tab(self.notebook, self.status_bar)
         self.notebook.add(self.pit_settings_frame, text="Pit Settings")
 
         # Logs tab

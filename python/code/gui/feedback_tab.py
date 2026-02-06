@@ -64,8 +64,14 @@ def get_feedback_tab(notebook, log_text_widget, status_bar):
         container,
         text="Submit Feedback",
         command=lambda: _submit(
-            frame, log_text_widget, status_bar, type_combo, email_entry,
-            topic_entry, description_text, submit_btn,
+            frame,
+            log_text_widget,
+            status_bar,
+            type_combo,
+            email_entry,
+            topic_entry,
+            description_text,
+            submit_btn,
         ),
     )
     submit_btn.pack(anchor=tk.E)
@@ -80,8 +86,16 @@ def _get_type_value(display_text):
     return None
 
 
-def _submit(frame, log_text_widget, status_bar, type_combo, email_entry,
-            topic_entry, description_text, submit_btn):
+def _submit(
+    frame,
+    log_text_widget,
+    status_bar,
+    type_combo,
+    email_entry,
+    topic_entry,
+    description_text,
+    submit_btn,
+):
     feedback_type = _get_type_value(type_combo.get())
     topic = topic_entry.get().strip()
     description = description_text.get("1.0", tk.END).strip()
@@ -142,15 +156,26 @@ def _submit(frame, log_text_widget, status_bar, type_combo, email_entry,
             )
 
             if response.status_code != 200:
-                raise Exception(f"Server returned status {response.status_code}: {response.text}")
+                raise Exception(
+                    f"Server returned status {response.status_code}: {response.text}"
+                )
 
             data = response.json()
             issue_id = data.get("issue_id", "unknown")
 
-            frame.after(0, lambda: _on_success(
-                frame, issue_id, status_bar, type_combo, email_entry,
-                topic_entry, description_text, submit_btn,
-            ))
+            frame.after(
+                0,
+                lambda: _on_success(
+                    frame,
+                    issue_id,
+                    status_bar,
+                    type_combo,
+                    email_entry,
+                    topic_entry,
+                    description_text,
+                    submit_btn,
+                ),
+            )
 
         except Exception as e:
             logger.error(f"Feedback submission failed: {e}")
@@ -159,8 +184,16 @@ def _submit(frame, log_text_widget, status_bar, type_combo, email_entry,
     threading.Thread(target=do_request, daemon=True).start()
 
 
-def _on_success(frame, issue_id, status_bar, type_combo, email_entry,
-                topic_entry, description_text, submit_btn):
+def _on_success(
+    frame,
+    issue_id,
+    status_bar,
+    type_combo,
+    email_entry,
+    topic_entry,
+    description_text,
+    submit_btn,
+):
     submit_btn.configure(state="normal", text="Submit Feedback")
     status_bar.clear()
 
@@ -187,8 +220,10 @@ def _on_success(frame, issue_id, status_bar, type_combo, email_entry,
     dialog.grab_set()
 
     ttk.Label(
-        dialog, text=f"Feedback submitted!\nIssue ID: #{issue_id}",
-        font=("Helvetica", 11), justify=tk.CENTER,
+        dialog,
+        text=f"Feedback submitted!\nIssue ID: #{issue_id}",
+        font=("Helvetica", 11),
+        justify=tk.CENTER,
     ).pack(pady=(20, 15))
 
     btn_frame = ttk.Frame(dialog)
@@ -200,11 +235,17 @@ def _on_success(frame, issue_id, status_bar, type_combo, email_entry,
         status_bar.set_status("Issue ID copied to clipboard", "success")
 
     ttk.Button(
-        btn_frame, text="Copy Issue ID", command=copy_issue_id, width=15,
+        btn_frame,
+        text="Copy Issue ID",
+        command=copy_issue_id,
+        width=15,
     ).pack(side=tk.LEFT, padx=(0, 10))
 
     ttk.Button(
-        btn_frame, text="OK", command=dialog.destroy, width=10,
+        btn_frame,
+        text="OK",
+        command=dialog.destroy,
+        width=10,
     ).pack(side=tk.LEFT)
 
 
